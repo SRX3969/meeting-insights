@@ -1,0 +1,183 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { meetingId, transcript } = await req.json();
+    if (!transcript || !meetingId) {
+      return new Response(
+        JSON.stringify({ error: "meetingId and transcript are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify user auth
+    const authHeader = req.headers.get("Authorization");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get user from JWT
+    const anonClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader! } } }
+    );
+    const { data: { user }, error: authError } = await anonClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Update meeting status to processing
+    await supabase
+      .from("meetings")
+      .update({ status: "processing" })
+      .eq("id", meetingId)
+      .eq("user_id", user.id);
+
+    // Call Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const aiResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `You are a meeting notes assistant. Analyze the meeting transcript and extract structured notes. Return a JSON object with these fields:
+- summary: A concise 3-5 sentence summary of the meeting
+- actionItems: An array of action item strings
+- decisions: An array of key decisions made
+- keyPoints: An array of important points discussed
+- tasks: An array of objects with { task: string, owner: string, priority: "high" | "medium" | "low" }
+- suggestedTitle: A short descriptive title for this meeting
+
+Be thorough but concise. If owners aren't clear, use "Unassigned".`,
+            },
+            {
+              role: "user",
+              content: `Here is the meeting transcript:\n\n${transcript}`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_meeting_notes",
+                description: "Extract structured meeting notes from a transcript",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    summary: { type: "string" },
+                    suggestedTitle: { type: "string" },
+                    actionItems: { type: "array", items: { type: "string" } },
+                    decisions: { type: "array", items: { type: "string" } },
+                    keyPoints: { type: "array", items: { type: "string" } },
+                    tasks: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          task: { type: "string" },
+                          owner: { type: "string" },
+                          priority: { type: "string", enum: ["high", "medium", "low"] },
+                        },
+                        required: ["task", "owner", "priority"],
+                      },
+                    },
+                  },
+                  required: ["summary", "suggestedTitle", "actionItems", "decisions", "keyPoints", "tasks"],
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "extract_meeting_notes" } },
+        }),
+      }
+    );
+
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("AI Gateway error:", aiResponse.status, errText);
+
+      if (aiResponse.status === 429) {
+        await supabase.from("meetings").update({ status: "error" }).eq("id", meetingId);
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiResponse.status === 402) {
+        await supabase.from("meetings").update({ status: "error" }).eq("id", meetingId);
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      throw new Error(`AI gateway error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      throw new Error("No structured output from AI");
+    }
+
+    const notes = JSON.parse(toolCall.function.arguments);
+
+    // Save to database
+    const { error: updateError } = await supabase
+      .from("meetings")
+      .update({
+        title: notes.suggestedTitle || "Untitled Meeting",
+        summary: notes.summary,
+        action_items: notes.actionItems,
+        decisions: notes.decisions,
+        key_points: notes.keyPoints,
+        tasks: notes.tasks,
+        status: "completed",
+      })
+      .eq("id", meetingId)
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      console.error("DB update error:", updateError);
+      throw new Error("Failed to save notes");
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, notes }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("generate-notes error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
