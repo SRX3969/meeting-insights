@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Brain } from "lucide-react";
 
 interface AuthProps {
   mode: "login" | "signup";
@@ -14,6 +16,10 @@ const Auth = ({ mode }: AuthProps) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [heardFrom, setHeardFrom] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,10 +31,26 @@ const Auth = ({ mode }: AuthProps) => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { full_name: fullName },
+          },
         });
         if (error) throw error;
-        toast.success("Check your email to confirm your account!");
+
+        // Update profile with extra fields after signup
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("profiles").update({
+            full_name: fullName,
+            username: username || null,
+            date_of_birth: dateOfBirth || null,
+            heard_from: heardFrom || null,
+          }).eq("user_id", user.id);
+        }
+
+        toast.success("Account created! Welcome to Notemind.");
+        navigate("/dashboard");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -45,10 +67,13 @@ const Auth = ({ mode }: AuthProps) => {
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8 fade-in">
         <div className="text-center space-y-2">
-          <Link to="/" className="text-base font-semibold text-foreground tracking-tight">
-            MeetNotes AI
+          <Link to="/" className="inline-flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
+              <Brain className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold text-foreground">Notemind</span>
           </Link>
-          <h1 className="text-2xl font-semibold text-foreground mt-4">
+          <h1 className="text-2xl font-bold text-foreground mt-6">
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -59,6 +84,32 @@ const Auth = ({ mode }: AuthProps) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="John Doe"
+                  required
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username (optional)</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="johndoe"
+                  className="rounded-xl"
+                />
+              </div>
+            </>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -68,6 +119,7 @@ const Auth = ({ mode }: AuthProps) => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
+              className="rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -80,9 +132,41 @@ const Auth = ({ mode }: AuthProps) => {
               placeholder="••••••••"
               required
               minLength={6}
+              className="rounded-xl"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+
+          {mode === "signup" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth (optional)</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>How did you hear about us?</Label>
+                <Select value={heardFrom} onValueChange={setHeardFrom}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select one..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="twitter">Twitter/X</SelectItem>
+                    <SelectItem value="google">Google Search</SelectItem>
+                    <SelectItem value="friend">Friend/Colleague</SelectItem>
+                    <SelectItem value="producthunt">Product Hunt</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          <Button type="submit" className="w-full rounded-xl" disabled={loading}>
             {loading ? "Loading..." : mode === "login" ? "Sign in" : "Create account"}
           </Button>
         </form>
@@ -91,14 +175,14 @@ const Auth = ({ mode }: AuthProps) => {
           {mode === "login" ? (
             <>
               Don't have an account?{" "}
-              <Link to="/auth/signup" className="text-foreground font-medium hover:underline">
+              <Link to="/auth/signup" className="text-primary font-medium hover:underline">
                 Sign up
               </Link>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <Link to="/auth/login" className="text-foreground font-medium hover:underline">
+              <Link to="/auth/login" className="text-primary font-medium hover:underline">
                 Sign in
               </Link>
             </>

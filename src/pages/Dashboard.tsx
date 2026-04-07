@@ -1,23 +1,23 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { InputCard } from "@/components/InputCard";
-import { OutputTabs } from "@/components/OutputTabs";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
-import { useCreateMeeting, useMeetings, DbMeeting } from "@/hooks/useMeetings";
+import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
-import { Download, Plus, FileText, ChevronRight } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { data: meetings, isLoading: loadingMeetings } = useMeetings();
   const createMeeting = useCreateMeeting();
+  const deleteMeeting = useDeleteMeeting();
   const navigate = useNavigate();
 
   const [transcript, setTranscript] = useState("");
   const [showInput, setShowInput] = useState(false);
-  const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleGenerate = useCallback(async () => {
     if (!transcript.trim()) return;
@@ -28,7 +28,6 @@ const Dashboard = () => {
       });
       setTranscript("");
       setShowInput(false);
-      // Navigate to the meeting after a moment for AI to process
       setTimeout(() => navigate(`/dashboard/meeting/${meeting.id}`), 1000);
     } catch (err) {
       console.error(err);
@@ -47,28 +46,75 @@ const Dashboard = () => {
     );
   }, []);
 
+  // Stats
+  const totalMeetings = meetings?.length || 0;
+  const thisWeek = meetings?.filter((m) => {
+    const d = new Date(m.created_at);
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return d >= weekAgo;
+  }).length || 0;
+  const actionItemsCount = meetings?.reduce((acc, m) => {
+    const items = (m.action_items as string[]) || [];
+    return acc + items.length;
+  }, 0) || 0;
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "there";
+
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 space-y-10">
+    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between fade-in">
         <div className="space-y-1">
-          <h1 className="text-3xl font-semibold text-foreground tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
-            Welcome back, {user?.email?.split("@")[0]}
-          </p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            Hi, {displayName} 👋
+          </h1>
+          <p className="text-muted-foreground text-sm">Here's your meeting overview</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setShowInput(!showInput)} size="sm">
-            <Plus className="h-4 w-4" />
-            New Meeting
-          </Button>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            Sign out
-          </Button>
+        <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
+          <Plus className="h-4 w-4" />
+          New Meeting
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in" style={{ animationDelay: "0.1s" }}>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <BarChart3 className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalMeetings}</p>
+              <p className="text-xs text-muted-foreground">Total Meetings</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <CalendarDays className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{thisWeek}</p>
+              <p className="text-xs text-muted-foreground">This Week</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <ListChecks className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{actionItemsCount}</p>
+              <p className="text-xs text-muted-foreground">Action Items</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Input (toggle) */}
+      {/* Input */}
       {showInput && (
         <div className="fade-in">
           <InputCard
@@ -90,12 +136,12 @@ const Dashboard = () => {
 
       {/* Meetings list */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Your Meetings</h2>
+        <h2 className="text-lg font-bold text-foreground">Recent Meetings</h2>
 
         {loadingMeetings ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton-pulse h-16 rounded-xl" />
+              <div key={i} className="skeleton-pulse h-20 rounded-2xl" />
             ))}
           </div>
         ) : !meetings?.length ? (
@@ -104,21 +150,23 @@ const Dashboard = () => {
             <p className="text-muted-foreground">No meetings yet. Create your first one!</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {meetings.map((meeting, i) => (
-              <Link
+              <div
                 key={meeting.id}
-                to={`/dashboard/meeting/${meeting.id}`}
-                className="flex items-center justify-between rounded-xl border border-border px-5 py-4 transition-all duration-150 hover:bg-accent hover-lift fade-slide-in"
+                className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 fade-slide-in"
                 style={{ animationDelay: `${i * 0.04}s` }}
               >
-                <div className="space-y-1 min-w-0 flex-1">
+                <Link
+                  to={`/dashboard/meeting/${meeting.id}`}
+                  className="flex-1 min-w-0 space-y-1"
+                >
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground truncate">{meeting.title}</p>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         meeting.status === "completed"
-                          ? "bg-secondary text-foreground"
+                          ? "bg-accent text-accent-foreground"
                           : meeting.status === "processing"
                           ? "bg-secondary text-muted-foreground"
                           : meeting.status === "error"
@@ -137,10 +185,30 @@ const Dashboard = () => {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
+                    {meeting.summary && (
+                      <span className="ml-2">· {meeting.summary.slice(0, 60)}...</span>
+                    )}
                   </p>
+                </Link>
+                <div className="flex items-center gap-1 ml-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (confirm("Delete this meeting?")) {
+                        deleteMeeting.mutate(meeting.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                  <Link to={`/dashboard/meeting/${meeting.id}`}>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              </Link>
+              </div>
             ))}
           </div>
         )}

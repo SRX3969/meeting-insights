@@ -1,43 +1,62 @@
-import { Plus, Clock, FileText } from "lucide-react";
+import { Brain, LayoutDashboard, FileText, Search, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import { Meeting } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface AppSidebarProps {
-  meetings: Meeting[];
-}
+const navItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Meetings", url: "/dashboard/meetings", icon: FileText },
+  { title: "Search", url: "/dashboard/search", icon: Search },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
+];
 
-export function AppSidebar({ meetings }: AppSidebarProps) {
+export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+  const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent className="pt-5">
         {/* Logo */}
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-6">
           {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <FileText className="h-4 w-4 text-primary-foreground" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
+                <Brain className="h-4.5 w-4.5 text-primary-foreground" />
               </div>
-              <span className="text-base font-semibold text-foreground">MeetNotes AI</span>
+              <span className="text-lg font-bold text-foreground tracking-tight">Notemind</span>
             </div>
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary mx-auto">
-              <FileText className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm mx-auto">
+              <Brain className="h-4.5 w-4.5 text-primary-foreground" />
             </div>
           )}
         </div>
@@ -46,62 +65,57 @@ export function AppSidebar({ meetings }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/"
-                    end
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover-bg"
-                    activeClassName="bg-accent text-foreground font-medium"
-                  >
-                    <Plus className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>New Meeting</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/history"
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover-bg"
-                    activeClassName="bg-accent text-foreground font-medium"
-                  >
-                    <Clock className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>History</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end={item.url === "/dashboard"}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover-bg"
+                      activeClassName="bg-accent text-accent-foreground font-medium"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Recent meetings */}
-        {!collapsed && meetings.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Recent
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {meetings.slice(0, 8).map((meeting) => (
-                  <SidebarMenuItem key={meeting.id}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={`/meeting/${meeting.id}`}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover-bg truncate"
-                        activeClassName="bg-accent text-foreground"
-                      >
-                        <FileText className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{meeting.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
+
+      {/* User footer */}
+      <SidebarFooter className="p-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2.5 rounded-xl px-2 py-2 w-full hover:bg-accent transition-colors">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {profile?.avatar_emoji || "🧠"}
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {profile?.full_name || user?.email?.split("@")[0]}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                </div>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
+              <Settings className="h-4 w-4 mr-2" /> Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
 import { OutputTabs } from "@/components/OutputTabs";
-import { ArrowLeft, Trash2, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingNotes } from "@/lib/types";
+import { toast } from "sonner";
 
 const DashboardMeetingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,9 +13,29 @@ const DashboardMeetingDetail = () => {
   const navigate = useNavigate();
 
   const handleDelete = async () => {
-    if (!id) return;
+    if (!id || !confirm("Delete this meeting?")) return;
     await deleteMeeting.mutateAsync(id);
     navigate("/dashboard");
+  };
+
+  const handleCopyNotes = () => {
+    if (!meeting) return;
+    const items = (meeting.action_items as string[]) || [];
+    const decisions = (meeting.decisions as string[]) || [];
+    const content = [
+      `# ${meeting.title}`,
+      "",
+      "## Summary",
+      meeting.summary || "N/A",
+      "",
+      "## Action Items",
+      ...items.map((i) => `- ${i}`),
+      "",
+      "## Decisions",
+      ...decisions.map((d) => `- ${d}`),
+    ].join("\n");
+    navigator.clipboard.writeText(content);
+    toast.success("Notes copied to clipboard");
   };
 
   const handleDownload = () => {
@@ -48,11 +69,16 @@ const DashboardMeetingDetail = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Link copied to clipboard");
+  };
+
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-4">
+      <div className="max-w-3xl mx-auto px-6 py-10 space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton-pulse h-16 rounded-xl" />
+          <div key={i} className="skeleton-pulse h-20 rounded-2xl" />
         ))}
       </div>
     );
@@ -60,7 +86,7 @@ const DashboardMeetingDetail = () => {
 
   if (!meeting) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-12 fade-in">
+      <div className="max-w-3xl mx-auto px-6 py-10 fade-in">
         <p className="text-muted-foreground">Meeting not found.</p>
         <Link to="/dashboard" className="notion-btn-ghost mt-4 inline-flex text-sm">
           <ArrowLeft className="h-4 w-4" /> Back
@@ -69,7 +95,6 @@ const DashboardMeetingDetail = () => {
     );
   }
 
-  // Convert to MeetingNotes format for OutputTabs
   const notes: MeetingNotes | null =
     meeting.status === "completed" && meeting.summary
       ? {
@@ -85,16 +110,17 @@ const DashboardMeetingDetail = () => {
       : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+    <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
       <div className="fade-in">
         <Link to="/dashboard" className="notion-btn-ghost text-sm text-muted-foreground mb-4 inline-flex">
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Link>
-        <div className="flex items-start justify-between mt-2">
+        <div className="flex items-start justify-between mt-3">
           <div>
-            <h1 className="text-3xl font-semibold text-foreground tracking-tight">{meeting.title}</h1>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">{meeting.title}</h1>
             <p className="text-muted-foreground text-sm mt-1">
               {new Date(meeting.created_at).toLocaleDateString("en-US", {
+                weekday: "long",
                 month: "long",
                 day: "numeric",
                 year: "numeric",
@@ -103,18 +129,26 @@ const DashboardMeetingDetail = () => {
               })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {meeting.status === "processing" && (
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-xl">
                 <RefreshCw className="h-4 w-4" /> Refresh
               </Button>
             )}
             {notes && (
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4" /> Export
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={handleCopyNotes} className="rounded-xl">
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownload} className="rounded-xl">
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleShare} className="rounded-xl">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
-            <Button variant="ghost" size="sm" onClick={handleDelete}>
+            <Button variant="ghost" size="sm" onClick={handleDelete} className="rounded-xl">
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
@@ -122,22 +156,35 @@ const DashboardMeetingDetail = () => {
       </div>
 
       {meeting.status === "processing" && (
-        <div className="notion-card text-center py-12 fade-in">
-          <div className="animate-pulse text-muted-foreground">AI is generating your notes...</div>
+        <div className="notion-card text-center py-14 fade-in">
+          <div className="inline-flex items-center gap-2 text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            AI is generating your notes...
+          </div>
         </div>
       )}
 
       {meeting.status === "error" && (
-        <div className="notion-card text-center py-12 fade-in">
+        <div className="notion-card text-center py-14 fade-in border-destructive/20">
           <p className="text-destructive">An error occurred while generating notes.</p>
         </div>
       )}
 
-      {notes && <OutputTabs notes={notes} />}
+      {notes && (
+        <div className="fade-in" style={{ animationDelay: "0.1s" }}>
+          {/* Summary highlight */}
+          <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
+            <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
+            <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>
+          </div>
+
+          <OutputTabs notes={notes} />
+        </div>
+      )}
 
       <details className="notion-card">
-        <summary className="text-sm font-medium text-foreground cursor-pointer">Original Transcript</summary>
-        <p className="mt-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+        <summary className="text-sm font-semibold text-foreground cursor-pointer">Original Transcript</summary>
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">
           {meeting.transcript}
         </p>
       </details>
