@@ -59,6 +59,51 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          accent_color: string | null
+          avatar_emoji: string | null
+          avatar_url: string | null
+          created_at: string
+          date_of_birth: string | null
+          full_name: string | null
+          heard_from: string | null
+          id: string
+          theme: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          avatar_emoji?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          heard_from?: string | null
+          id?: string
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          avatar_emoji?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          heard_from?: string | null
+          id?: string
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
