@@ -33,7 +33,7 @@ const Landing = () => {
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={notemindLogo} alt="Notemind" className="h-8 w-auto" />
+            <img src={notemindLogo} alt="Notemind" className="h-11 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth/login">
