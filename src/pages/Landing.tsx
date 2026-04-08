@@ -1,28 +1,46 @@
 import { Link } from "react-router-dom";
-import { Mic, ListChecks, Zap, FileText, ArrowRight } from "lucide-react";
+import { Mic, ListChecks, Zap, FileText, ArrowRight, Search, Brain, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import notemindLogo from "@/assets/notemind-logo.png";
 
 const features = [
   {
-    icon: Mic,
-    title: "Record or Upload",
-    description: "Record audio directly in-browser or upload meeting recordings for instant transcription.",
-  },
-  {
-    icon: Zap,
-    title: "AI-Powered Notes",
-    description: "Advanced AI analyzes your transcript and generates structured summaries, decisions, and tasks.",
+    icon: Sparkles,
+    title: "AI Summaries",
+    description: "Get clean, structured summaries from messy meeting transcripts in seconds.",
   },
   {
     icon: ListChecks,
-    title: "Action Items & Tasks",
-    description: "Automatically extract action items with owners and priority levels from your meetings.",
+    title: "Action Items Extraction",
+    description: "Automatically extract action items with owners and priority levels.",
   },
   {
-    icon: FileText,
-    title: "Export & Share",
-    description: "Download notes as markdown, copy to clipboard, or share with your team instantly.",
+    icon: Brain,
+    title: "Smart Insights",
+    description: "Surface key decisions, risks, and follow-ups you might have missed.",
+  },
+  {
+    icon: Search,
+    title: "Searchable Notes",
+    description: "Find any meeting, decision, or action item instantly with full-text search.",
+  },
+];
+
+const steps = [
+  {
+    number: "01",
+    title: "Paste or Upload",
+    description: "Paste your meeting transcript or upload an audio file. That's all you need.",
+  },
+  {
+    number: "02",
+    title: "AI Analyzes",
+    description: "Our AI reads through your transcript and extracts summaries, tasks, and decisions.",
+  },
+  {
+    number: "03",
+    title: "Review & Act",
+    description: "Get structured notes you can export, share, or act on immediately.",
   },
 ];
 
@@ -52,12 +70,12 @@ const Landing = () => {
           <img src={notemindLogo} alt="" className="h-5 w-auto" /> AI-Powered Meeting Intelligence
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
-          Turn every meeting into
+          Turn messy meetings into
           <br />
-          <span className="text-primary">actionable notes</span>
+          <span className="text-primary">clear action items</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-          Paste a transcript, upload audio, or record live — Notemind generates structured summaries, action items, and tasks in seconds.
+          AI-powered summaries, decisions, and tasks in seconds. Stop losing track of what matters.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link to="/auth/signup">
@@ -88,6 +106,38 @@ const Landing = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-border/50 bg-accent/20">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <div className="text-center mb-14">
+            <h2 className="text-2xl font-bold text-foreground">How it works</h2>
+            <p className="mt-2 text-muted-foreground">Three simple steps to structured meeting notes</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {steps.map((s, i) => (
+              <div key={s.number} className="text-center space-y-4 slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary text-primary-foreground text-lg font-bold mx-auto">
+                  {s.number}
+                </div>
+                <h3 className="text-base font-semibold text-foreground">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-3xl mx-auto px-6 py-24 text-center">
+        <h2 className="text-3xl font-bold text-foreground mb-4">Ready to transform your meetings?</h2>
+        <p className="text-muted-foreground mb-8">Join teams who never miss an action item again.</p>
+        <Link to="/auth/signup">
+          <Button size="lg" className="px-10 rounded-xl text-base h-12">
+            Get Started Free <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
       </section>
 
       {/* Footer */}
