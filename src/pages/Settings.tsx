@@ -12,6 +12,34 @@ import { User, Shield, Palette, AlertTriangle, Sun, Moon, Monitor } from "lucide
 
 const EMOJI_OPTIONS = ["🧠", "😊", "🚀", "💜", "🎯", "⚡", "🌟", "🎨", "📝", "💡", "🔥", "🌈"];
 
+const themeOptions = [
+  { value: "light" as const, label: "Light", icon: Sun },
+  { value: "dark" as const, label: "Dark", icon: Moon },
+  { value: "system" as const, label: "System", icon: Monitor },
+];
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex gap-3">
+      {themeOptions.map((t) => (
+        <button
+          key={t.value}
+          onClick={() => setTheme(t.value)}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+            theme === t.value
+              ? "bg-primary/10 text-primary ring-2 ring-primary"
+              : "bg-secondary text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          <t.icon className="h-4 w-4" />
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const Settings = () => {
   const { user, signOut } = useAuth();
   const { data: profile, isLoading } = useProfile();
