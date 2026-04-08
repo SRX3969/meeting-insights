@@ -169,11 +169,9 @@ const Settings = () => {
 
         {/* Preferences */}
         <TabsContent value="preferences">
-          <div className="notion-card space-y-4">
+          <div className="notion-card space-y-5">
             <h3 className="text-base font-semibold text-foreground">Theme</h3>
-            <p className="text-sm text-muted-foreground">
-              Theme customization coming soon. Currently using system default.
-            </p>
+            <ThemeSelector />
           </div>
         </TabsContent>
 
