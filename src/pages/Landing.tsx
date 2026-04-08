@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Brain, Mic, ListChecks, Zap, FileText, ArrowRight } from "lucide-react";
+import { Mic, ListChecks, Zap, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import notemindLogo from "@/assets/notemind-logo.png";
 
 const features = [
   {
@@ -32,10 +33,7 @@ const Landing = () => {
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
-              <Brain className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-foreground tracking-tight">Notemind</span>
+            <img src={notemindLogo} alt="Notemind" className="h-8 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth/login">
@@ -51,7 +49,7 @@ const Landing = () => {
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 py-28 text-center fade-in">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-accent/50 px-4 py-1.5 text-xs font-medium text-accent-foreground mb-6">
-          <Brain className="h-3.5 w-3.5" /> AI-Powered Meeting Intelligence
+          <img src={notemindLogo} alt="" className="h-4 w-auto" /> AI-Powered Meeting Intelligence
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
           Turn every meeting into
@@ -96,8 +94,7 @@ const Landing = () => {
       <footer className="border-t border-border/50">
         <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Notemind</span>
+            <img src={notemindLogo} alt="Notemind" className="h-5 w-auto" />
           </div>
           <span className="text-sm text-muted-foreground">© 2026 Notemind. All rights reserved.</span>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
