@@ -94,8 +94,7 @@ const Landing = () => {
       <footer className="border-t border-border/50">
         <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Notemind</span>
+            <img src={notemindLogo} alt="Notemind" className="h-5 w-auto" />
           </div>
           <span className="text-sm text-muted-foreground">© 2026 Notemind. All rights reserved.</span>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">

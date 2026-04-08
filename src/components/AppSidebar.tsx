@@ -50,15 +50,10 @@ export function AppSidebar() {
         <div className="px-4 pb-6">
           {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-                <Brain className="h-4.5 w-4.5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold text-foreground tracking-tight">Notemind</span>
+              <img src={notemindLogo} alt="Notemind" className="h-9 w-auto" />
             </div>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm mx-auto">
-              <Brain className="h-4.5 w-4.5 text-primary-foreground" />
-            </div>
+            <img src={notemindLogo} alt="Notemind" className="h-9 w-auto mx-auto" />
           )}
         </div>
 

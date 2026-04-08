@@ -68,10 +68,7 @@ const Auth = ({ mode }: AuthProps) => {
       <div className="w-full max-w-sm space-y-8 fade-in">
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
-              <Brain className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-foreground">Notemind</span>
+            <img src={notemindLogo} alt="Notemind" className="h-8 w-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-foreground mt-6">
             {mode === "login" ? "Welcome back" : "Create your account"}
