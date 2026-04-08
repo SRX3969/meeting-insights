@@ -49,7 +49,7 @@ const Landing = () => {
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 py-28 text-center fade-in">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-accent/50 px-4 py-1.5 text-xs font-medium text-accent-foreground mb-6">
-          <img src={notemindLogo} alt="" className="h-4 w-auto" /> AI-Powered Meeting Intelligence
+          <img src={notemindLogo} alt="" className="h-5 w-auto" /> AI-Powered Meeting Intelligence
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
           Turn every meeting into
