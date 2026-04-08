@@ -33,7 +33,7 @@ const Landing = () => {
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={notemindLogo} alt="Notemind" className="h-8 w-auto" />
+            <img src={notemindLogo} alt="Notemind" className="h-11 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth/login">
@@ -49,7 +49,7 @@ const Landing = () => {
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 py-28 text-center fade-in">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-accent/50 px-4 py-1.5 text-xs font-medium text-accent-foreground mb-6">
-          <img src={notemindLogo} alt="" className="h-4 w-auto" /> AI-Powered Meeting Intelligence
+          <img src={notemindLogo} alt="" className="h-5 w-auto" /> AI-Powered Meeting Intelligence
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
           Turn every meeting into
@@ -94,7 +94,7 @@ const Landing = () => {
       <footer className="border-t border-border/50">
         <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src={notemindLogo} alt="Notemind" className="h-5 w-auto" />
+            <img src={notemindLogo} alt="Notemind" className="h-8 w-auto" />
           </div>
           <span className="text-sm text-muted-foreground">© 2026 Notemind. All rights reserved.</span>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">

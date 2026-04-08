@@ -50,10 +50,10 @@ export function AppSidebar() {
         <div className="px-4 pb-6">
           {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <img src={notemindLogo} alt="Notemind" className="h-9 w-auto" />
+              <img src={notemindLogo} alt="Notemind" className="h-12 w-auto" />
             </div>
           ) : (
-            <img src={notemindLogo} alt="Notemind" className="h-9 w-auto mx-auto" />
+            <img src={notemindLogo} alt="Notemind" className="h-10 w-auto mx-auto" />
           )}
         </div>
 
