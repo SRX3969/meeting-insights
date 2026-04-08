@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Shield, Palette, AlertTriangle } from "lucide-react";
+import { User, Shield, Palette, AlertTriangle, Sun, Moon, Monitor } from "lucide-react";
 
 const EMOJI_OPTIONS = ["🧠", "😊", "🚀", "💜", "🎯", "⚡", "🌟", "🎨", "📝", "💡", "🔥", "🌈"];
 
