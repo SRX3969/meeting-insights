@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
+import notemindLogo from "@/assets/notemind-logo.png";
 
 interface AuthProps {
   mode: "login" | "signup";

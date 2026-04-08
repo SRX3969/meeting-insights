@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Brain, Mic, ListChecks, Zap, FileText, ArrowRight } from "lucide-react";
+import { Mic, ListChecks, Zap, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import notemindLogo from "@/assets/notemind-logo.png";
 
 const features = [
   {

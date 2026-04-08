@@ -1,4 +1,5 @@
-import { Brain, LayoutDashboard, FileText, Search, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Search, Settings, LogOut } from "lucide-react";
+import notemindLogo from "@/assets/notemind-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
