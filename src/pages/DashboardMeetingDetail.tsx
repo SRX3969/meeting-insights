@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
 import { OutputTabs } from "@/components/OutputTabs";
-import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2 } from "lucide-react";
+import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingNotes } from "@/lib/types";
 import { toast } from "sonner";
@@ -58,6 +58,17 @@ const DashboardMeetingDetail = () => {
       "",
       "## Tasks",
       ...tasks.map((t) => `- [${t.priority}] ${t.task} — ${t.owner}`),
+      "",
+      "## Insights",
+      `- Sentiment: ${meeting.sentiment || "N/A"}`,
+      `- Productivity Score: ${meeting.productivity_score != null ? meeting.productivity_score + "%" : "N/A"}`,
+      ...(meeting.participation_insights
+        ? [
+            `- Most Active: ${(meeting.participation_insights as any).mostActive}`,
+            `- Engagement: ${(meeting.participation_insights as any).engagementLevel}`,
+            `- Speakers: ${(meeting.participation_insights as any).speakerCount}`,
+          ]
+        : []),
     ].join("\n");
 
     const blob = new Blob([content], { type: "text/markdown" });
@@ -108,6 +119,8 @@ const DashboardMeetingDetail = () => {
           })),
         }
       : null;
+
+  const insights = meeting.participation_insights as { mostActive: string; engagementLevel: string; speakerCount: number } | null;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
@@ -170,9 +183,51 @@ const DashboardMeetingDetail = () => {
         </div>
       )}
 
+      {/* AI Insights Cards */}
+      {notes && (meeting.sentiment || meeting.productivity_score != null || insights) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in">
+          {meeting.sentiment && (
+            <div className="notion-card flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+                <SmilePlus className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground capitalize">
+                  {meeting.sentiment === "positive" ? "😊 Positive" : meeting.sentiment === "negative" ? "😟 Negative" : "😐 Neutral"}
+                </p>
+                <p className="text-xs text-muted-foreground">Sentiment</p>
+              </div>
+            </div>
+          )}
+          {meeting.productivity_score != null && (
+            <div className="notion-card flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">{meeting.productivity_score}%</p>
+                <p className="text-xs text-muted-foreground">Productivity</p>
+              </div>
+            </div>
+          )}
+          {insights && (
+            <div className="notion-card flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+                <Users className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">{insights.mostActive}</p>
+                <p className="text-xs text-muted-foreground">
+                  {insights.speakerCount} speakers · {insights.engagementLevel} engagement
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {notes && (
         <div className="fade-in" style={{ animationDelay: "0.1s" }}>
-          {/* Summary highlight */}
           <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
             <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
             <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>

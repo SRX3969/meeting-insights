@@ -2,11 +2,19 @@ import { useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { InputCard } from "@/components/InputCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+function getGreeting(name: string) {
+  const hour = new Date().getHours();
+  if (hour < 12) return `Good Morning, ${name} ☀️`;
+  if (hour < 17) return `Good Afternoon, ${name} 🌤️`;
+  return `Good Evening, ${name} 🌙`;
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -18,6 +26,7 @@ const Dashboard = () => {
 
   const [transcript, setTranscript] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!transcript.trim()) return;
@@ -59,7 +68,9 @@ const Dashboard = () => {
     return acc + items.length;
   }, 0) || 0;
 
-  const displayName = profile?.full_name || user?.email?.split("@")[0] || "there";
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const displayName = firstName || user?.email?.split("@")[0] || "there";
+  const greeting = firstName ? getGreeting(firstName) : "Hi, there 👋";
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
@@ -67,14 +78,20 @@ const Dashboard = () => {
       <div className="flex items-center justify-between fade-in">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Hi, {displayName} 👋
+            {greeting}
           </h1>
           <p className="text-muted-foreground text-sm">Here's your meeting overview</p>
         </div>
-        <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
-          <Plus className="h-4 w-4" />
-          New Meeting
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className="rounded-xl">
+            <BarChart3 className="h-4 w-4" />
+            {showAnalytics ? "Hide" : "Analytics"}
+          </Button>
+          <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
+            <Plus className="h-4 w-4" />
+            New Meeting
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -113,6 +130,13 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Analytics */}
+      {showAnalytics && meetings && (
+        <div className="fade-in">
+          <AnalyticsDashboard meetings={meetings} />
+        </div>
+      )}
 
       {/* Input */}
       {showInput && (
@@ -176,6 +200,14 @@ const Dashboard = () => {
                     >
                       {meeting.status}
                     </span>
+                    {meeting.sentiment && (
+                      <span className="text-xs">
+                        {meeting.sentiment === "positive" ? "😊" : meeting.sentiment === "negative" ? "😟" : "😐"}
+                      </span>
+                    )}
+                    {meeting.productivity_score != null && (
+                      <span className="text-xs text-muted-foreground">⚡{meeting.productivity_score}%</span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {new Date(meeting.created_at).toLocaleDateString("en-US", {
