@@ -1,5 +1,6 @@
-import { LayoutDashboard, FileText, Search, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor } from "lucide-react";
 import notemindLogo from "@/assets/notemind-logo.png";
+import { useTheme } from "@/hooks/useTheme";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -37,6 +38,13 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    setTheme(next);
+  };
+  const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
 
   const handleSignOut = async () => {
     await signOut();
@@ -82,7 +90,16 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* User footer */}
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
+        {/* Theme toggle */}
+        <button
+          onClick={cycleTheme}
+          className="flex items-center gap-2.5 rounded-xl px-3 py-2 w-full text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          title={`Theme: ${theme}`}
+        >
+          <ThemeIcon className="h-4 w-4 shrink-0" />
+          {!collapsed && <span className="capitalize">{theme} mode</span>}
+        </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2.5 rounded-xl px-2 py-2 w-full hover:bg-accent transition-colors">
