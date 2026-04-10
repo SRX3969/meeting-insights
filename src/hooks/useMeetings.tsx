@@ -14,6 +14,9 @@ export interface DbMeeting {
   key_points: string[] | null;
   tasks: { task: string; owner: string; priority: string }[] | null;
   status: string;
+  sentiment: string | null;
+  productivity_score: number | null;
+  participation_insights: { mostActive: string; engagementLevel: string; speakerCount: number } | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,7 +62,6 @@ export function useCreateMeeting() {
 
   return useMutation({
     mutationFn: async ({ title, transcript }: { title: string; transcript: string }) => {
-      // Create the meeting
       const { data: meeting, error: insertError } = await supabase
         .from("meetings")
         .insert({ user_id: user!.id, title, transcript, status: "processing" })
@@ -67,7 +69,6 @@ export function useCreateMeeting() {
         .single();
       if (insertError) throw insertError;
 
-      // Call AI edge function
       const { data, error } = await supabase.functions.invoke("generate-notes", {
         body: { meetingId: meeting.id, transcript },
       });
