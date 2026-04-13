@@ -17,6 +17,7 @@ import SearchPage from "./pages/SearchPage";
 import Settings from "./pages/Settings";
 import LiveMeetings from "./pages/LiveMeetings";
 import NotFound from "./pages/NotFound";
+import { CommandMenu } from "@/components/CommandMenu";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <CommandMenu />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth/login" element={<Auth mode="login" />} />

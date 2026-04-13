@@ -178,8 +178,11 @@ const DashboardMeetingDetail = () => {
       )}
 
       {meeting.status === "error" && (
-        <div className="notion-card text-center py-14 fade-in border-destructive/20">
+        <div className="notion-card text-center py-14 fade-in border-destructive/20 space-y-3">
           <p className="text-destructive">An error occurred while generating notes.</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-xl">
+            <RefreshCw className="h-4 w-4" /> Retry
+          </Button>
         </div>
       )}
 
