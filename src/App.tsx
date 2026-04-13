@@ -16,6 +16,7 @@ import DashboardMeetingDetail from "./pages/DashboardMeetingDetail";
 import SearchPage from "./pages/SearchPage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import CalendarCallback from "./pages/CalendarCallback";
 import { CommandMenu } from "@/components/CommandMenu";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/dashboard/meeting/:id" element={<ProtectedPage><DashboardMeetingDetail /></ProtectedPage>} />
               <Route path="/dashboard/search" element={<ProtectedPage><SearchPage /></ProtectedPage>} />
               <Route path="/dashboard/settings" element={<ProtectedPage><Settings /></ProtectedPage>} />
+              <Route path="/dashboard/calendar-callback" element={<ProtectedPage><CalendarCallback /></ProtectedPage>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
