@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CalendarSection } from "@/components/CalendarSection";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 
 function getGreeting(name: string) {
   const hour = new Date().getHours();
