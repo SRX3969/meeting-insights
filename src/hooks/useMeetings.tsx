@@ -30,7 +30,7 @@ export function useMeetings() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("meetings-realtime")
+      .channel(`meetings-realtime-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "meetings", filter: `user_id=eq.${user.id}` },
@@ -67,7 +67,7 @@ export function useMeeting(id: string | undefined) {
   useEffect(() => {
     if (!user || !id) return;
     const channel = supabase
-      .channel(`meeting-${id}`)
+      .channel(`meeting-detail-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "meetings", filter: `id=eq.${id}` },
