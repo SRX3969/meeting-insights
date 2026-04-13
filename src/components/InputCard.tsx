@@ -1,6 +1,7 @@
-import { Upload, Sparkles } from "lucide-react";
-import { useRef } from "react";
+import { Upload, Sparkles, AlertCircle } from "lucide-react";
+import { useRef, useState } from "react";
 import { RecordingControls } from "./RecordingControls";
+import { transcriptSchema } from "@/lib/validation";
 
 interface InputCardProps {
   transcript: string;
@@ -20,19 +21,47 @@ export function InputCard({
   isGenerating,
 }: InputCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleGenerate = () => {
+    const result = transcriptSchema.safeParse(transcript);
+    if (!result.success) {
+      setValidationError(result.error.errors[0].message);
+      return;
+    }
+    setValidationError(null);
+    onGenerate();
+  };
+
+  const handleChange = (value: string) => {
+    onTranscriptChange(value);
+    if (validationError) {
+      const result = transcriptSchema.safeParse(value);
+      if (result.success) setValidationError(null);
+    }
+  };
 
   return (
     <div className="notion-card slide-up">
       <textarea
         value={transcript}
-        onChange={(e) => onTranscriptChange(e.target.value)}
-        placeholder="Paste your meeting transcript here..."
-        className="notion-input min-h-[180px] resize-none text-sm leading-relaxed"
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder="Paste your meeting transcript here (min 50 characters)..."
+        className={`notion-input min-h-[180px] resize-none text-sm leading-relaxed ${
+          validationError ? "border-destructive ring-1 ring-destructive/30" : ""
+        }`}
       />
+
+      {validationError && (
+        <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {validationError}
+        </div>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
-          onClick={onGenerate}
+          onClick={handleGenerate}
           disabled={isGenerating || !transcript.trim()}
           className="notion-btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
         >
