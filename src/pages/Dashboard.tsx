@@ -80,7 +80,13 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {greeting}
           </h1>
-          <p className="text-muted-foreground text-sm">Here's your meeting overview</p>
+          <p className="text-muted-foreground text-sm flex items-center gap-2">
+            Here's your meeting overview
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              Live
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className="rounded-xl">
