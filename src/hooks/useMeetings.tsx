@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export interface DbMeeting {
   id: string;
@@ -23,6 +24,26 @@ export interface DbMeeting {
 
 export function useMeetings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("meetings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "meetings", filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["meetings", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   return useQuery({
     queryKey: ["meetings", user?.id],
@@ -40,6 +61,26 @@ export function useMeetings() {
 
 export function useMeeting(id: string | undefined) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime for single meeting
+  useEffect(() => {
+    if (!user || !id) return;
+    const channel = supabase
+      .channel(`meeting-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "meetings", filter: `id=eq.${id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, id, queryClient]);
 
   return useQuery({
     queryKey: ["meeting", id],
@@ -74,7 +115,7 @@ export function useCreateMeeting() {
       });
 
       if (error) {
-        toast.error("AI generation failed. You can retry from the meeting page.");
+        toast.error("AI processing failed. Please try again.");
         throw error;
       }
 
