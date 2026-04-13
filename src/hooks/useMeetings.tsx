@@ -26,11 +26,19 @@ export function useMeetings() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Realtime subscription
   useEffect(() => {
     if (!user) return;
+
+    const topic = `realtime:meetings-realtime-${user.id}`;
+    supabase
+      .getChannels()
+      .filter((channel) => channel.topic === topic)
+      .forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+
     const channel = supabase
-      .channel("meetings-realtime")
+      .channel(`meetings-realtime-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "meetings", filter: `user_id=eq.${user.id}` },
@@ -41,9 +49,9 @@ export function useMeetings() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user?.id, queryClient]);
 
   return useQuery({
     queryKey: ["meetings", user?.id],
@@ -63,11 +71,19 @@ export function useMeeting(id: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Realtime for single meeting
   useEffect(() => {
     if (!user || !id) return;
+
+    const topic = `realtime:meeting-detail-${id}`;
+    supabase
+      .getChannels()
+      .filter((channel) => channel.topic === topic)
+      .forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+
     const channel = supabase
-      .channel(`meeting-${id}`)
+      .channel(`meeting-detail-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "meetings", filter: `id=eq.${id}` },
@@ -78,9 +94,9 @@ export function useMeeting(id: string | undefined) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [user, id, queryClient]);
+  }, [user?.id, id, queryClient]);
 
   return useQuery({
     queryKey: ["meeting", id],
