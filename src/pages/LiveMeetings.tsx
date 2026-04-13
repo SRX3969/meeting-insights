@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { VideoRoom } from "@/components/meeting/VideoRoom";
 import { ConvexProvider, ConvexReactClient, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Loader2 } from "lucide-react";
 
 function randomId() {
   return Math.random().toString(36).slice(2, 10);
@@ -48,14 +49,21 @@ function LiveMeetingsInner() {
 
             <div className="mt-6">
               <Button onClick={handleJoin} disabled={joining}>
-                {joining ? "Joining..." : "Join Meeting"}
+                {joining ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  "Join Meeting"
+                )}
               </Button>
             </div>
 
             {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
           </div>
         ) : (
-          <VideoRoom token={session.token} userName={session.userName} />
+          <VideoRoom token={session.token} userName={session.userName} onLeave={() => setSession(null)} />
         )}
       </div>
     </div>
