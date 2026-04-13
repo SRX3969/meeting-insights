@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor } from "lucide-react";
+import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor, Command } from "lucide-react";
 import notemindLogo from "@/assets/notemind-logo.png";
 import { useTheme } from "@/hooks/useTheme";
 import { NavLink } from "@/components/NavLink";
@@ -85,6 +85,16 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+
+            {/* ⌘K hint */}
+            {!collapsed && (
+              <div className="mt-4 mx-3 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+                <Command className="h-3 w-3" />
+                <span>Press</span>
+                <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-medium">⌘K</kbd>
+                <span>to search</span>
+              </div>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
