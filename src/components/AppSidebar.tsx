@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor, Command } from "lucide-react";
+import { LayoutDashboard, FileText, Search, Settings, LogOut, Video, Sun, Moon, Monitor, Command } from "lucide-react";
 import notemindLogo from "@/assets/notemind-logo.png";
 import { useTheme } from "@/hooks/useTheme";
 import { NavLink } from "@/components/NavLink";
@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Meetings", url: "/dashboard/meetings", icon: FileText },
+  { title: "Live Meetings", url: "/live-meetings", icon: Video },
   { title: "Search", url: "/dashboard/search", icon: Search },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];

@@ -15,6 +15,7 @@ import NewMeeting from "./pages/NewMeeting";
 import DashboardMeetingDetail from "./pages/DashboardMeetingDetail";
 import SearchPage from "./pages/SearchPage";
 import Settings from "./pages/Settings";
+import LiveMeetings from "./pages/LiveMeetings";
 import NotFound from "./pages/NotFound";
 import CalendarCallback from "./pages/CalendarCallback";
 import { CommandMenu } from "@/components/CommandMenu";
@@ -47,8 +48,8 @@ const App = () => (
               <Route path="/dashboard/meeting/:id" element={<ProtectedPage><DashboardMeetingDetail /></ProtectedPage>} />
               <Route path="/dashboard/search" element={<ProtectedPage><SearchPage /></ProtectedPage>} />
               <Route path="/dashboard/settings" element={<ProtectedPage><Settings /></ProtectedPage>} />
+              <Route path="/live-meetings" element={<ProtectedPage><LiveMeetings /></ProtectedPage>} />
               <Route path="/dashboard/calendar-callback" element={<ProtectedPage><CalendarCallback /></ProtectedPage>} />
-
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
