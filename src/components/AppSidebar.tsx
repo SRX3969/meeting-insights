@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-import { LayoutDashboard, FileText, Search, Settings, LogOut, Video } from "lucide-react";
-import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor } from "lucide-react";
-=======
-import { LayoutDashboard, FileText, Search, Settings, LogOut, Sun, Moon, Monitor, Command } from "lucide-react";
->>>>>>> upstream/main
+import { LayoutDashboard, FileText, Search, Settings, LogOut, Video, Sun, Moon, Monitor, Command } from "lucide-react";
 import notemindLogo from "@/assets/notemind-logo.png";
 import { useTheme } from "@/hooks/useTheme";
 import { NavLink } from "@/components/NavLink";
