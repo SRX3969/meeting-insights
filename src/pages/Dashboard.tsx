@@ -25,6 +25,7 @@ const Dashboard = () => {
   const createMeeting = useCreateMeeting();
   const deleteMeeting = useDeleteMeeting();
   const navigate = useNavigate();
+  const calendar = useGoogleCalendar();
 
   const [transcript, setTranscript] = useState("");
   const [showInput, setShowInput] = useState(false);
@@ -137,6 +138,17 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Google Calendar */}
+      <div className="fade-in">
+        <CalendarSection
+          events={calendar.events}
+          isConnected={calendar.isConnected}
+          isLoading={calendar.isLoading}
+          onConnect={calendar.connect}
+          onDisconnect={calendar.disconnect}
+        />
       </div>
 
       {/* Analytics */}
