@@ -21,6 +21,9 @@ export type Database = {
           decisions: Json | null
           id: string
           key_points: Json | null
+          participation_insights: Json | null
+          productivity_score: number | null
+          sentiment: string | null
           status: string
           summary: string | null
           tasks: Json | null
@@ -35,6 +38,9 @@ export type Database = {
           decisions?: Json | null
           id?: string
           key_points?: Json | null
+          participation_insights?: Json | null
+          productivity_score?: number | null
+          sentiment?: string | null
           status?: string
           summary?: string | null
           tasks?: Json | null
@@ -49,6 +55,9 @@ export type Database = {
           decisions?: Json | null
           id?: string
           key_points?: Json | null
+          participation_insights?: Json | null
+          productivity_score?: number | null
+          sentiment?: string | null
           status?: string
           summary?: string | null
           tasks?: Json | null

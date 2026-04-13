@@ -21,13 +21,11 @@ serve(async (req) => {
       );
     }
 
-    // Verify user auth
     const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from JWT
     const anonClient = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -41,14 +39,12 @@ serve(async (req) => {
       );
     }
 
-    // Update meeting status to processing
     await supabase
       .from("meetings")
       .update({ status: "processing" })
       .eq("id", meetingId)
       .eq("user_id", user.id);
 
-    // Call Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -74,6 +70,9 @@ serve(async (req) => {
 - keyPoints: An array of important points discussed
 - tasks: An array of objects with { task: string, owner: string, priority: "high" | "medium" | "low" }
 - suggestedTitle: A short descriptive title for this meeting
+- sentiment: One of "positive", "neutral", or "negative" based on the overall meeting tone
+- productivityScore: An integer from 0-100 indicating how productive the meeting was (100 = very productive, clear outcomes; 0 = unproductive, no decisions)
+- participationInsights: An object with { mostActive: string (name of most active participant or "Unknown"), engagementLevel: "high" | "medium" | "low", speakerCount: number (estimated number of distinct speakers) }
 
 Be thorough but concise. If owners aren't clear, use "Unassigned".`,
             },
@@ -87,7 +86,7 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
               type: "function",
               function: {
                 name: "extract_meeting_notes",
-                description: "Extract structured meeting notes from a transcript",
+                description: "Extract structured meeting notes with insights from a transcript",
                 parameters: {
                   type: "object",
                   properties: {
@@ -108,8 +107,19 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
                         required: ["task", "owner", "priority"],
                       },
                     },
+                    sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                    productivityScore: { type: "integer", minimum: 0, maximum: 100 },
+                    participationInsights: {
+                      type: "object",
+                      properties: {
+                        mostActive: { type: "string" },
+                        engagementLevel: { type: "string", enum: ["high", "medium", "low"] },
+                        speakerCount: { type: "integer" },
+                      },
+                      required: ["mostActive", "engagementLevel", "speakerCount"],
+                    },
                   },
-                  required: ["summary", "suggestedTitle", "actionItems", "decisions", "keyPoints", "tasks"],
+                  required: ["summary", "suggestedTitle", "actionItems", "decisions", "keyPoints", "tasks", "sentiment", "productivityScore", "participationInsights"],
                 },
               },
             },
@@ -149,7 +159,6 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
 
     const notes = JSON.parse(toolCall.function.arguments);
 
-    // Save to database
     const { error: updateError } = await supabase
       .from("meetings")
       .update({
@@ -159,6 +168,9 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
         decisions: notes.decisions,
         key_points: notes.keyPoints,
         tasks: notes.tasks,
+        sentiment: notes.sentiment,
+        productivity_score: notes.productivityScore,
+        participation_insights: notes.participationInsights,
         status: "completed",
       })
       .eq("id", meetingId)
