@@ -140,7 +140,7 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
       const errText = await aiResponse.text();
       console.error("OpenAI error:", aiResponse.status, errText);
       await supabase.from("meetings").update({ status: "error" }).eq("id", meetingId);
-      return new Response(JSON.stringify({ error: `AI error: ${aiResponse.status}` }), {
+      return new Response(JSON.stringify({ error: `OpenAI API error: ${aiResponse.status} - ${errText}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -149,7 +149,8 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      throw new Error("No structured output from AI");
+      console.error("No tool call in AI response:", aiData);
+      throw new Error("No structured output from AI. Verify transcript has enough content.");
     }
 
     const notes = JSON.parse(toolCall.function.arguments);
@@ -168,20 +169,19 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
         participation_insights: notes.participationInsights,
         status: "completed",
       })
-      .eq("id", meetingId)
-      .eq("user_id", user.id);
+      .eq("id", meetingId);
 
     if (updateError) {
-      console.error("DB update error:", updateError);
-      throw new Error("Failed to save notes");
+      console.error("DB Update Error Detail:", updateError);
+      throw new Error(`Database save failed: ${updateError.message}`);
     }
 
     return new Response(JSON.stringify({ success: true, notes }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("generate-notes Vercel Edge API error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    console.error("Final catch error:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal Server Error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
