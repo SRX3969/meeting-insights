@@ -189,16 +189,18 @@ Avoid: Missing fields, unstructured output, generic summaries, or tasks not link
             ],
             temperature: 0.3,
             max_tokens: 1500,
+            response_format: { type: "json_object" },
           }),
         });
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
           const content: string = aiData.choices?.[0]?.message?.content ?? "";
-          console.log("Mistral raw response:", content.slice(0, 200));
+          console.log("Mistral raw response received.");
 
-          // Strip any accidental markdown code fences
-          const cleaned = content.replace(/^```json?\s*/i, "").replace(/```\s*$/i, "").trim();
+          // Extract JSON block in case there's surrounding text
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          const cleaned = jsonMatch ? jsonMatch[0] : content;
           const parsed = JSON.parse(cleaned);
 
           if (parsed.summary && parsed.actionItems) {
