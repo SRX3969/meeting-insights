@@ -131,7 +131,7 @@ const DashboardMeetingDetail = () => {
       filename: `${meeting.title || "meeting-notes"}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
     };
     toast.success("Generating PDF...");
     html2pdf().set(opt).from(element).save().then(() => {
