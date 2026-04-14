@@ -37,9 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       baseURL: "https://generativelanguage.googleapis.com/v1", // Use stable v1
     });
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error: authError } = await createClient(supabaseUrl, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
-      global: { headers: { Authorization: authHeader } },
+    const supabase = createClient(supabaseUrl as string, supabaseKey as string);
+    const { data: { user }, error: authError } = await createClient(supabaseUrl as string, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
+      global: { headers: { Authorization: authHeader || "" } },
     }).auth.getUser();
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
