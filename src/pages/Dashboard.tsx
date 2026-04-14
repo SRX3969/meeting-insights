@@ -1,15 +1,31 @@
 import { useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { 
+  Plus, 
+  FileText, 
+  ChevronRight, 
+  Trash2, 
+  CalendarDays, 
+  ListChecks, 
+  BarChart3, 
+  Brain, 
+  Sparkles, 
+  Mic, 
+  Zap, 
+  ArrowRight,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  Loader2
+} from "lucide-react";
 import { InputCard } from "@/components/InputCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CalendarSection } from "@/components/CalendarSection";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { useAudioTranscription } from "@/hooks/useAudioTranscription";
 
 function getGreeting(name: string) {
   const hour = new Date().getHours();
@@ -25,7 +41,7 @@ const Dashboard = () => {
   const createMeeting = useCreateMeeting();
   const deleteMeeting = useDeleteMeeting();
   const navigate = useNavigate();
-  const calendar = useGoogleCalendar();
+  const { transcribeAudio, isTranscribing, progress: transcriptionProgress } = useAudioTranscription();
 
   const [transcript, setTranscript] = useState("");
   const [showInput, setShowInput] = useState(false);
@@ -40,23 +56,15 @@ const Dashboard = () => {
       });
       setTranscript("");
       setShowInput(false);
-      setTimeout(() => navigate(`/dashboard/meeting/${meeting.id}`), 1000);
+      // Faster navigation for better UX
+      navigate(`/dashboard/meeting/${meeting.id}`);
     } catch (err) {
       console.error(err);
     }
   }, [transcript, createMeeting, navigate]);
 
-  const handleAudioFile = useCallback((file: File) => {
-    setTranscript(
-      `[Audio file uploaded: ${file.name}]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
-
-  const handleRecordingComplete = useCallback((blob: Blob) => {
-    setTranscript(
-      `[Audio recorded: ${(blob.size / 1024).toFixed(1)}KB]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
+  const greeting = getGreeting(firstName);
 
   // Stats
   const totalMeetings = meetings?.length || 0;
@@ -71,199 +79,183 @@ const Dashboard = () => {
     return acc + items.length;
   }, 0) || 0;
 
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
-  const displayName = firstName || user?.email?.split("@")[0] || "there";
-  const greeting = firstName ? getGreeting(firstName) : "Hi, there 👋";
-
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between fade-in">
+    <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-10 relative">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 fade-in">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            {greeting}
+          <h1 className="text-3xl font-black tracking-tight text-[#0A0A0A]">
+            Hi, {firstName} 👋
           </h1>
-          <p className="text-muted-foreground text-sm flex items-center gap-2">
-            Here's your meeting overview
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live
-            </span>
+          <p className="text-muted-foreground font-semibold text-sm">
+            Here's your meeting overview <span className="text-green-500 ml-1">• Live</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className="rounded-xl">
-            <BarChart3 className="h-4 w-4" />
-            {showAnalytics ? "Hide" : "Analytics"}
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAnalytics(!showAnalytics)} 
+            className="h-10 px-6 rounded-xl bg-white border-black/10 shadow-sm font-bold text-xs hover:bg-black/5"
+          >
+            <BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" />
+            Analytics
           </Button>
-          <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
-            <Plus className="h-4 w-4" />
-            New Meeting
+          <Button 
+            onClick={() => setShowInput(!showInput)} 
+            className="h-10 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/10 transition-all"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {showInput ? "Cancel" : "New Meeting"}
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in" style={{ animationDelay: "0.1s" }}>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{totalMeetings}</p>
-              <p className="text-xs text-muted-foreground">Total Meetings</p>
-            </div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{thisWeek}</p>
-              <p className="text-xs text-muted-foreground">This Week</p>
-            </div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <ListChecks className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{actionItemsCount}</p>
-              <p className="text-xs text-muted-foreground">Action Items</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Google Calendar */}
-      <div className="fade-in">
-        <CalendarSection
-          events={calendar.events}
-          isConnected={calendar.isConnected}
-          isLoading={calendar.isLoading}
-          onConnect={calendar.connect}
-          onDisconnect={calendar.disconnect}
-        />
-      </div>
-
-      {/* Analytics */}
-      {showAnalytics && meetings && (
-        <div className="fade-in">
-          <AnalyticsDashboard meetings={meetings} />
-        </div>
-      )}
-
-      {/* Input */}
-      {showInput && (
-        <div className="fade-in">
-          <InputCard
-            transcript={transcript}
-            onTranscriptChange={setTranscript}
-            onGenerate={handleGenerate}
-            onAudioFile={handleAudioFile}
-            onRecordingComplete={handleRecordingComplete}
-            isGenerating={createMeeting.isPending}
-          />
-        </div>
-      )}
-
-      {createMeeting.isPending && (
-        <div className="notion-card">
-          <LoadingSkeleton />
-        </div>
-      )}
-
-      {/* Meetings list */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-foreground">Recent Meetings</h2>
-
-        {loadingMeetings ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton-pulse h-20 rounded-2xl" />
-            ))}
-          </div>
-        ) : !meetings?.length ? (
-          <div className="notion-card text-center py-16 fade-in">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground">No meetings yet. Create your first one!</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {meetings.map((meeting, i) => (
-              <div
-                key={meeting.id}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 fade-slide-in"
-                style={{ animationDelay: `${i * 0.04}s` }}
-              >
-                <Link
-                  to={`/dashboard/meeting/${meeting.id}`}
-                  className="flex-1 min-w-0 space-y-1"
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">{meeting.title}</p>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        meeting.status === "completed"
-                          ? "bg-accent text-accent-foreground"
-                          : meeting.status === "processing"
-                          ? "bg-secondary text-muted-foreground"
-                          : meeting.status === "error"
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {meeting.status}
-                    </span>
-                    {meeting.sentiment && (
-                      <span className="text-xs">
-                        {meeting.sentiment === "positive" ? "😊" : meeting.sentiment === "negative" ? "😟" : "😐"}
-                      </span>
-                    )}
-                    {meeting.productivity_score != null && (
-                      <span className="text-xs text-muted-foreground">⚡{meeting.productivity_score}%</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(meeting.created_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {meeting.summary && (
-                      <span className="ml-2">· {meeting.summary.slice(0, 60)}...</span>
-                    )}
-                  </p>
-                </Link>
-                <div className="flex items-center gap-1 ml-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (confirm("Delete this meeting?")) {
-                        deleteMeeting.mutate(meeting.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                  </Button>
-                  <Link to={`/dashboard/meeting/${meeting.id}`}>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 slide-up">
+        {[
+          { label: "Total Meetings", value: totalMeetings, icon: BarChart3, color: "text-primary bg-primary/10" },
+          { label: "This Week", value: thisWeek, icon: CalendarDays, color: "text-purple-600 bg-purple-50" },
+          { label: "Action Items", value: actionItemsCount, icon: ListChecks, color: "text-blue-600 bg-blue-50" }
+        ].map((stat, i) => (
+          <div key={i} className="group p-6 rounded-2xl border border-black/5 bg-white shadow-sm hover:shadow-md transition-all">
+             <div className="flex items-center gap-4">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${stat.color} shadow-sm`}>
+                  <stat.icon className="h-6 w-6" />
                 </div>
-              </div>
-            ))}
+                <div>
+                   <h3 className="text-2xl font-black text-[#0A0A0A] tracking-tighter">{stat.value}</h3>
+                   <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                </div>
+             </div>
           </div>
-        )}
+        ))}
+      </div>
+
+
+
+      <div className="grid lg:grid-cols-3 gap-10 items-start">
+         <div className="lg:col-span-2 space-y-10">
+            {/* Analytics Dashboard */}
+            {showAnalytics && meetings && (
+              <div className="slide-up">
+                <AnalyticsDashboard meetings={meetings} />
+              </div>
+            )}
+
+            {/* Input Feature - Always visible as per original design */}
+            <div className="relative bg-white rounded-[2rem] p-1 shadow-xl overflow-hidden border border-black/5">
+              <InputCard
+                transcript={transcript}
+                onTranscriptChange={setTranscript}
+                onGenerate={handleGenerate}
+                onAudioFile={async (file) => {
+                  const res = await transcribeAudio(file);
+                  if (res) setTranscript(prev => prev ? prev + "\n\n" + res : res);
+                }}
+                onRecordingComplete={async (blob) => {
+                  const res = await transcribeAudio(blob);
+                  if (res) setTranscript(prev => prev ? prev + "\n\n" + res : res);
+                }}
+                isGenerating={createMeeting.isPending || isTranscribing}
+              />
+              {isTranscribing && (
+                <div className="px-8 pb-6 text-xs font-black text-primary animate-pulse tracking-widest uppercase italic">
+                  {transcriptionProgress || "Syncing Audio Intelligence..."}
+                </div>
+              )}
+            </div>
+
+            {/* Meetings Table */}
+            <div className="space-y-6 slide-up" style={{ animationDelay: "0.2s" }}>
+              <div className="flex items-center justify-between px-2">
+                <h2 className="text-xl font-black tracking-tight text-[#0A0A0A]">Workspace Sync Live</h2>
+                <Link to="/dashboard/meetings" className="text-xs font-bold text-primary hover:underline">View All</Link>
+              </div>
+
+              {loadingMeetings ? (
+                <div className="flex items-center justify-center py-24 bg-white rounded-[2rem] border border-black/5 shadow-sm">
+                  <Loader2 className="h-8 w-8 text-muted-foreground/20 animate-spin" />
+                </div>
+              ) : !meetings?.length ? (
+                <div className="py-20 text-center rounded-[3rem] bg-black/5 border border-dashed border-black/10">
+                   <div className="h-16 w-16 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
+                      <FileText className="h-6 w-6 text-muted-foreground/40" />
+                   </div>
+                   <p className="text-muted-foreground font-bold">No data found in this sync.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {meetings.map((meeting, i) => (
+                    <div
+                      key={meeting.id}
+                      className="group flex items-center justify-between rounded-[2rem] border border-black/5 bg-white px-6 py-5 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1"
+                    >
+                      <Link to={`/dashboard/meeting/${meeting.id}`} className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                           <h4 className="text-sm font-black text-[#0A0A0A] truncate">{meeting.title}</h4>
+                           <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                              meeting.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-primary/10 text-primary'
+                           }`}>
+                             {meeting.status}
+                           </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground/60">
+                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(meeting.created_at).toLocaleDateString()}</span>
+                           {meeting.productivity_score && (
+                             <span className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3" /> {meeting.productivity_score}% Efficiency</span>
+                           )}
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (confirm("Delete this sync?")) deleteMeeting.mutate(meeting.id);
+                            }}
+                         >
+                            <Trash2 className="h-4 w-4" />
+                         </Button>
+                         <Link to={`/dashboard/meeting/${meeting.id}`} className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary hover:bg-primary transition-colors hover:text-white">
+                            <ChevronRight className="h-4 w-4" />
+                         </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+         </div>
+
+         {/* Right Sidebar - Active Context */}
+         <div className="space-y-8 slide-up" style={{ animationDelay: "0.3s" }}>
+            <div className="p-10 rounded-[2.5rem] bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] text-white space-y-4 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16" />
+               <Zap className="h-8 w-8 text-primary" />
+               <h4 className="text-xl font-black tracking-tight leading-none italic uppercase">Intelligence Mode</h4>
+               <p className="text-sm font-bold text-white/50 leading-relaxed italic">
+                 "Paste raw Zoom or Slack transcripts. Our engine extracts the hidden structure for you."
+               </p>
+               <Button className="w-full bg-white/10 hover:bg-white/20 border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-widest py-6">
+                 Learn Syntax
+               </Button>
+            </div>
+
+            <div className="rounded-[2.5rem] border border-black/5 p-8 bg-white/40 backdrop-blur-sm space-y-6">
+               <h4 className="text-sm font-black text-[#0A0A0A] uppercase tracking-widest">Active Syncs</h4>
+               <div className="space-y-4">
+                  {[
+                    { name: 'Product Growth', time: '2m ago' },
+                    { name: 'Architecture Review', time: '1h ago' }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/[0.03] shadow-sm">
+                       <span className="text-xs font-bold text-[#0A0A0A]">{item.name}</span>
+                       <span className="text-[10px] font-bold text-muted-foreground/50">{item.time}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+         </div>
       </div>
     </div>
   );

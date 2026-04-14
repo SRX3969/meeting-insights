@@ -4,12 +4,14 @@ import { InputCard } from "@/components/InputCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { LiveTranscription } from "@/components/LiveTranscription";
 import { useCreateMeeting } from "@/hooks/useMeetings";
+import { useAudioTranscription } from "@/hooks/useAudioTranscription";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const NewMeeting = () => {
   const navigate = useNavigate();
   const createMeeting = useCreateMeeting();
+  const { transcribeAudio, isTranscribing, progress } = useAudioTranscription();
   const [transcript, setTranscript] = useState("");
 
   const handleGenerate = useCallback(async () => {
@@ -26,17 +28,19 @@ const NewMeeting = () => {
     }
   }, [transcript, createMeeting, navigate]);
 
-  const handleAudioFile = useCallback((file: File) => {
-    setTranscript(
-      `[Audio file uploaded: ${file.name}]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
+  const handleAudioFile = useCallback(async (file: File) => {
+    const result = await transcribeAudio(file);
+    if (result) {
+      setTranscript((prev) => (prev ? prev + "\n\n" + result : result));
+    }
+  }, [transcribeAudio]);
 
-  const handleRecordingComplete = useCallback((blob: Blob) => {
-    setTranscript(
-      `[Audio recorded: ${(blob.size / 1024).toFixed(1)}KB]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
+  const handleRecordingComplete = useCallback(async (blob: Blob) => {
+    const result = await transcribeAudio(blob, `recording-${Date.now()}.webm`);
+    if (result) {
+      setTranscript((prev) => (prev ? prev + "\n\n" + result : result));
+    }
+  }, [transcribeAudio]);
 
   const handleLiveTranscript = useCallback((text: string) => {
     setTranscript((prev) => (prev ? prev + "\n\n" + text : text));
@@ -63,8 +67,15 @@ const NewMeeting = () => {
         onGenerate={handleGenerate}
         onAudioFile={handleAudioFile}
         onRecordingComplete={handleRecordingComplete}
-        isGenerating={createMeeting.isPending}
+        isGenerating={createMeeting.isPending || isTranscribing}
       />
+
+      {isTranscribing && (
+        <div className="flex items-center justify-center gap-3 p-6 bg-primary/5 rounded-2xl border border-primary/10 animate-pulse">
+          <div className="h-2 w-2 bg-primary rounded-full animate-bounce" />
+          <p className="text-sm font-bold text-primary">{progress || "Processing AI Transcription..."}</p>
+        </div>
+      )}
 
       {createMeeting.isPending && (
         <div className="notion-card">

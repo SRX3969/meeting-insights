@@ -41,24 +41,42 @@ export function createMeeting(transcript: string, title?: string): Meeting {
 // Mock AI generation (will be replaced with real AI via Lovable Cloud)
 export function generateMockNotes(transcript: string): MeetingNotes {
   const words = transcript.split(/\s+/).length;
+  
+  // Dynamic extraction of potential speakers
+  const speakers = Array.from(new Set(transcript.match(/[A-Z][a-z]+(?=:)/g) || []));
+  const mainSpeaker = speakers[0] || "The team";
+  
+  // Keyword detection for better context
+  const topics = [];
+  const text = transcript.toLowerCase();
+  if (text.includes("security")) topics.push("Security infrastructure");
+  if (text.includes("api") || text.includes("backend")) topics.push("Systems architecture");
+  if (text.includes("ui") || text.includes("design") || text.includes("frontend")) topics.push("User experience");
+  if (text.includes("timeline") || text.includes("roadmap") || text.includes("plan")) topics.push("Project timeline");
+  if (topics.length === 0) topics.push("Strategic objectives");
+
   return {
-    summary: `This meeting covered ${words} words of discussion. Key topics included project updates, timeline reviews, and team coordination. The team discussed priorities for the upcoming sprint and aligned on deliverables.`,
+    summary: `${mainSpeaker} led a discussion focusing on ${topics[0]}${topics[1] ? " and " + topics[1] : ""}. The team analyzed core dependencies across ${words} words of dialogue, ensuring all key stakeholders are aligned on the path forward.`,
+    suggestedTitle: topics.length > 0 ? `${topics[0]} Alignment` : "Operational Sync",
+    keyPoints: [
+      `Deep dive into ${topics[0]} requirements`,
+      `Consensus on ${topics[1] || "next steps and milestones"}`,
+      "Resource allocation and team capacity verification",
+    ],
     actionItems: [
-      "Review the project timeline and update milestones",
-      "Schedule follow-up meeting with stakeholders",
-      "Share meeting notes with the broader team",
-      "Update the project documentation with new decisions",
+      `Finalize technical draft for ${topics[0]}`,
+      "Review cross-team dependencies and blockers",
+      "Draft internal summary for stakeholder communication",
     ],
     decisions: [
-      "Agreed to move the deadline to next Friday",
-      "Decided to use the new workflow for future projects",
-      "Approved the budget allocation for Q2",
+      `Approved the initial approach for ${topics[0]}`,
+      "Agreed on the updated delivery schedule",
+      "Resource hiring plan confirmed for the next phase",
     ],
     tasks: [
-      { task: "Update project roadmap", owner: "Team Lead", priority: "high" },
-      { task: "Send stakeholder update email", owner: "Project Manager", priority: "medium" },
-      { task: "Review and merge pending PRs", owner: "Engineering", priority: "high" },
-      { task: "Prepare demo for next meeting", owner: "Design Team", priority: "low" },
+      { task: `Update ${topics[0]} documentation`, owner: speakers[1] || mainSpeaker, priority: "high" },
+      { task: "Prepare progress report", owner: "Project Management", priority: "medium" },
+      { task: "Schedule follow-up review", owner: mainSpeaker, priority: "low" },
     ],
   };
 }

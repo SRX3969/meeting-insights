@@ -1,4 +1,4 @@
-import { Upload, Sparkles, AlertCircle } from "lucide-react";
+import { Upload, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { RecordingControls } from "./RecordingControls";
 import { transcriptSchema } from "@/lib/validation";
@@ -63,10 +63,19 @@ export function InputCard({
         <button
           onClick={handleGenerate}
           disabled={isGenerating || !transcript.trim()}
-          className="notion-btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          className="notion-btn-primary disabled:opacity-40 disabled:cursor-not-allowed min-w-[140px]"
         >
-          <Sparkles className="h-4 w-4" />
-          {isGenerating ? "Generating..." : "Generate Notes"}
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Generate Notes
+            </>
+          )}
         </button>
 
         <button onClick={() => fileInputRef.current?.click()} className="notion-btn-secondary">
