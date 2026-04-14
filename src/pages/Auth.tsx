@@ -28,7 +28,7 @@ const Auth = ({ mode }: AuthProps) => {
 
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -39,8 +39,7 @@ const Auth = ({ mode }: AuthProps) => {
         if (error) throw error;
 
         // Update profile with extra fields after signup
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        if (data.user) {
           await supabase.from("profiles").update({
             full_name: fullName,
             username: username || null,

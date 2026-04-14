@@ -1,0 +1,172 @@
+﻿[
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\components\\AnalyticsDashboard.tsx",
+        "messages":  {
+                         "value":  [
+                                       {
+                                           "line":  19,
+                                           "column":  50,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  21,
+                                           "column":  58,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  27,
+                                           "column":  23,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  51,
+                                           "column":  28,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  55,
+                                           "column":  22,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  142,
+                                           "column":  57,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       }
+                                   ],
+                         "Count":  6
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\components\\LiveTranscription.tsx",
+        "messages":  {
+                         "value":  [
+                                       {
+                                           "line":  14,
+                                           "column":  33,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  17,
+                                           "column":  42,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  17,
+                                           "column":  79,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  24,
+                                           "column":  42,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  24,
+                                           "column":  79,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  32,
+                                           "column":  36,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  49,
+                                           "column":  35,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  59,
+                                           "column":  44,
+                                           "message":  "Empty block statement."
+                                       }
+                                   ],
+                         "Count":  8
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\components\\ui\\command.tsx",
+        "messages":  {
+                         "line":  24,
+                         "column":  11,
+                         "message":  "An interface declaring no members is equivalent to its supertype."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\components\\ui\\textarea.tsx",
+        "messages":  {
+                         "line":  5,
+                         "column":  18,
+                         "message":  "An interface declaring no members is equivalent to its supertype."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\hooks\\useProfile.tsx",
+        "messages":  {
+                         "line":  57,
+                         "column":  20,
+                         "message":  "Unexpected any. Specify a different type."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\pages\\Auth.tsx",
+        "messages":  {
+                         "line":  59,
+                         "column":  19,
+                         "message":  "Unexpected any. Specify a different type."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\pages\\DashboardMeetingDetail.tsx",
+        "messages":  {
+                         "value":  [
+                                       {
+                                           "line":  72,
+                                           "column":  66,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  73,
+                                           "column":  65,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  74,
+                                           "column":  63,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       },
+                                       {
+                                           "line":  121,
+                                           "column":  37,
+                                           "message":  "Unexpected any. Specify a different type."
+                                       }
+                                   ],
+                         "Count":  4
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\src\\pages\\Settings.tsx",
+        "messages":  {
+                         "line":  85,
+                         "column":  19,
+                         "message":  "Unexpected any. Specify a different type."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\supabase\\functions\\google-calendar\\index.ts",
+        "messages":  {
+                         "line":  207,
+                         "column":  52,
+                         "message":  "Unexpected any. Specify a different type."
+                     }
+    },
+    {
+        "filePath":  "C:\\Users\\abhir\\OneDrive\\Desktop\\Proddy\\Projects\\notemind\\meeting-insights\\tailwind.config.ts",
+        "messages":  {
+                         "line":  90,
+                         "column":  13,
+                         "message":  "A `require()` style import is forbidden."
+                     }
+    }
+]

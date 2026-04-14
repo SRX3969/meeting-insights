@@ -1,0 +1,5 @@
+﻿src/hooks/useAudioTranscription.tsx(2,26): error TS2307: Cannot find module '@/integrations/supabase/client' or its corresponding type declarations.
+src/hooks/useAudioTranscription.tsx(39,14): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', 'node18', or 'nodenext'.
+src/hooks/useAudioTranscription.tsx(39,26): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/hooks/useAudioTranscription.tsx(44,23): error TS1343: The 'import.meta' meta-property is only allowed when the '--module' option is 'es2020', 'es2022', 'esnext', 'system', 'node16', 'node18', or 'nodenext'.
+src/hooks/useAudioTranscription.tsx(44,35): error TS2339: Property 'env' does not exist on type 'ImportMeta'.

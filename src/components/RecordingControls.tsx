@@ -3,14 +3,29 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 interface RecordingControlsProps {
   onRecordingComplete: (blob: Blob) => void;
+  disabled?: boolean;
 }
 
-export function RecordingControls({ onRecordingComplete }: RecordingControlsProps) {
+export function RecordingControls({ onRecordingComplete, disabled = false }: RecordingControlsProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [wave, setWave] = useState([4, 4, 4, 4, 4]);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    let waveInterval: ReturnType<typeof setInterval>;
+    if (isRecording) {
+      waveInterval = setInterval(() => {
+        setWave(Array(5).fill(0).map(() => Math.max(4, Math.random() * 18)));
+      }, 100);
+    } else {
+      setWave([4, 4, 4, 4, 4]);
+    }
+    return () => clearInterval(waveInterval);
+  }, [isRecording]);
 
   useEffect(() => {
     return () => {
@@ -64,13 +79,25 @@ export function RecordingControls({ onRecordingComplete }: RecordingControlsProp
             <Square className="h-3.5 w-3.5" />
             Stop Recording
           </button>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="recording-dot" />
-            <span className="font-mono tabular-nums">{formatTime(seconds)}</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
+            <div className="flex items-center gap-[3px] h-5 mx-1">
+              {wave.map((h, i) => (
+                <div 
+                  key={i} 
+                  className="w-1 bg-red-500 rounded-full transition-all" 
+                  style={{ height: `${h}px`, transitionDuration: '100ms' }} 
+                />
+              ))}
+            </div>
+            <span className="font-mono tabular-nums font-semibold text-red-500">{formatTime(seconds)}</span>
           </div>
         </>
       ) : (
-        <button onClick={startRecording} className="notion-btn-secondary">
+        <button
+          onClick={startRecording}
+          disabled={disabled}
+          className="notion-btn-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+        >
           <Mic className="h-4 w-4" />
           Record Audio
         </button>
@@ -78,3 +105,4 @@ export function RecordingControls({ onRecordingComplete }: RecordingControlsProp
     </div>
   );
 }
+

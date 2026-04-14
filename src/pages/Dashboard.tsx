@@ -10,6 +10,9 @@ import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChar
 import { Button } from "@/components/ui/button";
 import { CalendarSection } from "@/components/CalendarSection";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { useAudioTranscription } from "@/hooks/useAudioTranscription";
+import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
+import { useEffect } from "react";
 
 function getGreeting(name: string) {
   const hour = new Date().getHours();
@@ -26,10 +29,46 @@ const Dashboard = () => {
   const deleteMeeting = useDeleteMeeting();
   const navigate = useNavigate();
   const calendar = useGoogleCalendar();
+  const { transcribeAudio, isTranscribing, progress: transcriptionProgress } = useAudioTranscription();
 
   const [transcript, setTranscript] = useState("");
-  const [showInput, setShowInput] = useState(false);
+  const [showInput, setShowInput] = useState(true);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false);
+
+  useEffect(() => {
+    // Only run tutorial automatically if no meetings exist and we haven't run it yet
+    if (meetings && meetings.length === 0 && !localStorage.getItem("tutorial-completed")) {
+      setRunTutorial(true);
+    }
+  }, [meetings]);
+
+  const tutorialSteps: Step[] = [
+    {
+      target: ".tour-step-1",
+      content: "Welcome to Notemind! Paste your meeting transcripts, type notes, or upload audio here to let the AI instantly generate insights.",
+      disableBeacon: true,
+      placement: "bottom"
+    },
+    {
+      target: ".tour-step-2",
+      content: "Connect your Google Calendar to seamlessly pull your schedule and auto-draft meeting contexts.",
+      placement: "left"
+    },
+    {
+      target: ".tour-step-3",
+      content: "Once generated, your beautifully structured meeting summaries and action items will appear down here.",
+      placement: "top"
+    }
+  ];
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+      setRunTutorial(false);
+      localStorage.setItem("tutorial-completed", "true");
+    }
+  };
 
   const handleGenerate = useCallback(async () => {
     if (!transcript.trim()) return;
@@ -46,17 +85,19 @@ const Dashboard = () => {
     }
   }, [transcript, createMeeting, navigate]);
 
-  const handleAudioFile = useCallback((file: File) => {
-    setTranscript(
-      `[Audio file uploaded: ${file.name}]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
+  const handleAudioFile = useCallback(async (file: File) => {
+    const result = await transcribeAudio(file, file.name);
+    if (result) {
+      setTranscript(result);
+    }
+  }, [transcribeAudio]);
 
-  const handleRecordingComplete = useCallback((blob: Blob) => {
-    setTranscript(
-      `[Audio recorded: ${(blob.size / 1024).toFixed(1)}KB]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
-    );
-  }, []);
+  const handleRecordingComplete = useCallback(async (blob: Blob) => {
+    const result = await transcribeAudio(blob, "recording.webm");
+    if (result) {
+      setTranscript(result);
+    }
+  }, [transcribeAudio]);
 
   // Stats
   const totalMeetings = meetings?.length || 0;
@@ -77,6 +118,24 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      <Joyride
+        steps={tutorialSteps}
+        run={runTutorial}
+        continuous
+        showProgress
+        showSkipButton
+        disableOverlayClose
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            primaryColor: '#6366f1',
+            zIndex: 1000,
+          },
+          tooltipContainer: {
+            textAlign: 'left',
+          }
+        }}
+      />
       {/* Header */}
       <div className="flex items-center justify-between fade-in">
         <div className="space-y-1">
@@ -102,6 +161,28 @@ const Dashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Input */}
+      {showInput && (
+        <div className="fade-in tour-step-1">
+          <InputCard
+            transcript={transcript}
+            onTranscriptChange={setTranscript}
+            onGenerate={handleGenerate}
+            onAudioFile={handleAudioFile}
+            onRecordingComplete={handleRecordingComplete}
+            isGenerating={createMeeting.isPending}
+            isTranscribing={isTranscribing}
+            transcriptionProgress={transcriptionProgress}
+          />
+        </div>
+      )}
+
+      {createMeeting.isPending && (
+        <div className="notion-card">
+          <LoadingSkeleton />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in" style={{ animationDelay: "0.1s" }}>
@@ -141,13 +222,14 @@ const Dashboard = () => {
       </div>
 
       {/* Google Calendar */}
-      <div className="fade-in">
+      <div className="fade-in tour-step-2">
         <CalendarSection
           events={calendar.events}
           isConnected={calendar.isConnected}
           isLoading={calendar.isLoading}
           onConnect={calendar.connect}
           onDisconnect={calendar.disconnect}
+          onRefresh={calendar.refetch}
         />
       </div>
 
@@ -158,28 +240,10 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Input */}
-      {showInput && (
-        <div className="fade-in">
-          <InputCard
-            transcript={transcript}
-            onTranscriptChange={setTranscript}
-            onGenerate={handleGenerate}
-            onAudioFile={handleAudioFile}
-            onRecordingComplete={handleRecordingComplete}
-            isGenerating={createMeeting.isPending}
-          />
-        </div>
-      )}
 
-      {createMeeting.isPending && (
-        <div className="notion-card">
-          <LoadingSkeleton />
-        </div>
-      )}
 
       {/* Meetings list */}
-      <div className="space-y-4">
+      <div className="space-y-4 tour-step-3">
         <h2 className="text-lg font-bold text-foreground">Recent Meetings</h2>
 
         {loadingMeetings ? (
@@ -189,9 +253,22 @@ const Dashboard = () => {
             ))}
           </div>
         ) : !meetings?.length ? (
-          <div className="notion-card text-center py-16 fade-in">
-            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground">No meetings yet. Create your first one!</p>
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-accent/20 p-12 text-center shadow-sm backdrop-blur-xl fade-in">
+            <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
+            
+            <div className="relative z-10">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-6 border border-primary/20 shadow-inner">
+                <FileText className="h-10 w-10 text-primary animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground tracking-tight mb-2">No meetings yet</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed mb-6">
+                Your workspace is a blank canvas. Start by entering a transcript, recording audio, or pulling an event from your calendar to instantly generate your first set of intelligent notes!
+              </p>
+              <Button onClick={() => setRunTutorial(true)} variant="outline" className="rounded-xl shadow-sm backdrop-blur-md">
+                Show me around
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
