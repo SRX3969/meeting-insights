@@ -106,7 +106,26 @@
 
 @layer components {
   .notion-card {
-    @apply bg-card rounded-2xl border border-border p-6 shadow-sm transition-all duration-200 hover:shadow-md;
+    @apply bg-card/70 backdrop-blur-md rounded-3xl border border-white/10 p-8 shadow-2xl transition-all duration-500 hover:shadow-primary/20 hover:-translate-y-2 hover:border-primary/30;
+  }
+
+  .glass-nav {
+    @apply sticky top-0 z-50 border-b border-white/5 bg-background/60 backdrop-blur-xl;
+  }
+
+  /* Premium Animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 3s ease-in-out infinite;
+  }
+
+  .mesh-gradient {
+    background: radial-gradient(at 0% 0%, hsla(252, 60%, 58%, 0.15) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(252, 60%, 58%, 0.1) 0, transparent 50%),
+                radial-gradient(at 50% 100%, hsla(252, 60%, 58%, 0.05) 0, transparent 50%);
   }
 
   .notion-input {
@@ -179,6 +198,16 @@
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 0.5; filter: blur(40px); }
+  50% { opacity: 0.8; filter: blur(60px); }
 }
 
 @keyframes recordingPulse {
