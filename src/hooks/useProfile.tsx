@@ -26,7 +26,7 @@ export function useProfile() {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("id", user!.id)
         .single();
       if (error) throw error;
       return data as unknown as Profile;
@@ -46,7 +46,7 @@ export function useUpdateProfile() {
       const { error } = await supabase
         .from("profiles")
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
+        .eq("id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {

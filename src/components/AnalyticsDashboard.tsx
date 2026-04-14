@@ -63,9 +63,9 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
 
   if (!completed.length) {
     return (
-      <div className="notion-card text-center py-12">
+      <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm text-center py-12">
         <Activity className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm">Complete some meetings to see analytics</p>
+        <p className="text-muted-foreground text-sm font-semibold">Complete some meetings to see analytics</p>
       </div>
     );
   }
@@ -88,15 +88,15 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Meetings over time */}
         {meetingsOverTime.length > 1 && (
-          <div className="notion-card space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Meetings Over Time</h3>
+          <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-[#0A0A0A] uppercase tracking-wider">Meetings Over Time</h3>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={meetingsOverTime}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="week" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px" }} />
-                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+                <XAxis dataKey="week" className="text-xs font-semibold" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis className="text-xs font-semibold" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -104,14 +104,14 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
 
         {/* Productivity scores */}
         {productivityData.length > 0 && (
-          <div className="notion-card space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Productivity Scores</h3>
+          <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-[#0A0A0A] uppercase tracking-wider">Productivity Scores</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={productivityData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="title" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis domain={[0, 100]} className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px" }} />
+                <XAxis dataKey="title" className="text-xs font-semibold" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis domain={[0, 100]} className="text-xs font-semibold" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
                 <Bar dataKey="score" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -120,16 +120,16 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
 
         {/* Sentiment distribution */}
         {sentimentData.length > 0 && (
-          <div className="notion-card space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Sentiment Distribution</h3>
+          <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-[#0A0A0A] uppercase tracking-wider">Sentiment Distribution</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={sentimentData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                <Pie data={sentimentData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                   {sentimentData.map((entry) => (
                     <Cell key={entry.name} fill={SENTIMENT_COLORS[entry.name as keyof typeof SENTIMENT_COLORS] || "hsl(var(--muted))"} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -141,13 +141,13 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
   return (
-    <div className="notion-card flex items-center gap-3">
-      <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-accent-foreground" />
+    <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm hover:shadow-md transition-all flex items-center gap-4">
+      <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center shrink-0">
+        <Icon className="h-6 w-6 text-accent-foreground" />
       </div>
       <div>
-        <p className="text-xl font-bold text-foreground capitalize">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <h3 className="text-2xl font-black text-[#0A0A0A] tracking-tighter capitalize">{value}</h3>
+        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
       </div>
     </div>
   );
