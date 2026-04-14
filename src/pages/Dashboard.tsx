@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarSection } from "@/components/CalendarSection";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { useAudioTranscription } from "@/hooks/useAudioTranscription";
+import { toast } from "sonner";
 import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 import { useEffect } from "react";
 
@@ -80,8 +81,9 @@ const Dashboard = () => {
       setTranscript("");
       setShowInput(false);
       setTimeout(() => navigate(`/dashboard/meeting/${meeting.id}`), 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to create meeting. Check your database tables.");
     }
   }, [transcript, createMeeting, navigate]);
 
