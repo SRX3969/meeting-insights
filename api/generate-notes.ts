@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
-import { mistral } from "@ai-sdk/mistral";
+import { createMistral } from "@ai-sdk/mistral";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -39,10 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
+    // Create Mistral provider explicitly
+    const mistral = createMistral({
+      apiKey: MISTRAL_API_KEY,
+    });
+
     // Mistral is highly stable in India and worldwide
     const { object: notes } = await generateObject({
       model: mistral("mistral-small-latest"),
-      apiKey: MISTRAL_API_KEY,
       schema: z.object({
         summary: z.string(),
         suggestedTitle: z.string(),
@@ -55,14 +59,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           priority: z.enum(["high", "medium", "low"])
         })),
         sentiment: z.enum(["positive", "neutral", "negative"]),
-        productivityScore: z.number(),
+        productivityScore: z.number().int().describe("An integer between 0 and 100"),
         participationInsights: z.object({
           mostActive: z.string(),
           engagementLevel: z.enum(["high", "medium", "low"]),
-          speakerCount: z.number()
+          speakerCount: z.number().int()
         })
       }),
-      prompt: `Analyze this meeting transcript and extract structured highlights: ${transcript}`,
+      prompt: `Analyze this meeting transcript and extract structured highlights. Ensure productivityScore is an INTEGER between 0 and 100: ${transcript}`,
     });
 
     const { error: updateError } = await supabase
@@ -75,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         key_points: notes.keyPoints,
         tasks: notes.tasks,
         sentiment: notes.sentiment,
-        productivity_score: notes.productivityScore,
+        productivity_score: Math.round(notes.productivityScore),
         participation_insights: notes.participationInsights,
         status: "completed",
       })
