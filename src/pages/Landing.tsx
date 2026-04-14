@@ -103,7 +103,7 @@ const Landing = () => {
                       </div>
                     </div>
                     <div className="space-y-4 font-mono text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                       <ctrl94> AI ANALYSIS COMPLETE
+                       AI ANALYSIS COMPLETE
                     </div>
                     <div className="space-y-4">
                       <div className="h-7 w-3/4 bg-primary/10 rounded-lg" />
