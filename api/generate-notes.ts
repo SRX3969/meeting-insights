@@ -26,7 +26,7 @@ export default async function handler(req: Request) {
     const authHeader = req.headers.get("Authorization");
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     if (!supabaseUrl || !anonKey || !OPENAI_API_KEY || !supabaseKey) {
