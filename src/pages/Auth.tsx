@@ -45,7 +45,7 @@ const Auth = ({ mode }: AuthProps) => {
             username: username || null,
             date_of_birth: dateOfBirth || null,
             heard_from: heardFrom || null,
-          }).eq("user_id", user.id);
+          }).eq("user_id", data.user.id);
         }
 
         toast.success("Account created! Welcome to Notemind.");
