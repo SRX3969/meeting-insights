@@ -1,348 +1,192 @@
-import { useState, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { InputCard } from "@/components/InputCard";
-import { LoadingSkeleton } from "@/components/LoadingSkeleton";
-import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
-import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Brain, Sparkles, Wand2, Upload, Mic, LayoutDashboard, History, CheckCircle2, TrendingUp, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CalendarSection } from "@/components/CalendarSection";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
-import { useAudioTranscription } from "@/hooks/useAudioTranscription";
+import { Textarea } from "@/components/ui/textarea";
+import { useMeetings } from "@/hooks/useMeetings";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
-import { useEffect } from "react";
-
-function getGreeting(name: string) {
-  const hour = new Date().getHours();
-  if (hour < 12) return `Good Morning, ${name} ☀️`;
-  if (hour < 17) return `Good Afternoon, ${name} 🌤️`;
-  return `Good Evening, ${name} 🌙`;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: meetings, isLoading: loadingMeetings } = useMeetings();
-  const createMeeting = useCreateMeeting();
-  const deleteMeeting = useDeleteMeeting();
-  const navigate = useNavigate();
-  const calendar = useGoogleCalendar();
-  const { transcribeAudio, isTranscribing, progress: transcriptionProgress } = useAudioTranscription();
-
+  const { createMeeting, isCreating } = useMeetings();
   const [transcript, setTranscript] = useState("");
-  const [showInput, setShowInput] = useState(true);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [runTutorial, setRunTutorial] = useState(false);
 
-  useEffect(() => {
-    // Only run tutorial automatically if no meetings exist and we haven't run it yet
-    if (meetings && meetings.length === 0 && !localStorage.getItem("tutorial-completed")) {
-      setRunTutorial(true);
+  const handleGenerate = async () => {
+    if (!transcript.trim() || transcript.length < 5) {
+      toast.error("Please provide a valid transcript (min 5 characters).");
+      return;
     }
-  }, [meetings]);
 
-  const tutorialSteps: Step[] = [
-    {
-      target: ".tour-step-1",
-      content: "Welcome to Notemind! Paste your meeting transcripts, type notes, or upload audio here to let the AI instantly generate insights.",
-      disableBeacon: true,
-      placement: "bottom"
-    },
-    {
-      target: ".tour-step-2",
-      content: "Connect your Google Calendar to seamlessly pull your schedule and auto-draft meeting contexts.",
-      placement: "left"
-    },
-    {
-      target: ".tour-step-3",
-      content: "Once generated, your beautifully structured meeting summaries and action items will appear down here.",
-      placement: "top"
-    }
-  ];
-
-  const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
-      setRunTutorial(false);
-      localStorage.setItem("tutorial-completed", "true");
+    try {
+      await createMeeting.mutateAsync({
+        transcript,
+        title: "New Meeting Analysis",
+        date: new Date().toISOString(),
+      });
+      setTranscript("");
+    } catch (error: any) {
+      // Error handled in hook
     }
   };
 
-  const handleGenerate = useCallback(async () => {
-    if (!transcript.trim()) return;
-    try {
-      const meeting = await createMeeting.mutateAsync({
-        title: `Meeting ${new Date().toLocaleDateString()}`,
-        transcript,
-      });
-      setTranscript("");
-      setShowInput(false);
-      setTimeout(() => navigate(`/dashboard/meeting/${meeting.id}`), 1000);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to create meeting. Check your database tables.");
-    }
-  }, [transcript, createMeeting, navigate]);
-
-  const handleAudioFile = useCallback(async (file: File) => {
-    const result = await transcribeAudio(file, file.name);
-    if (result) {
-      setTranscript(result);
-    }
-  }, [transcribeAudio]);
-
-  const handleRecordingComplete = useCallback(async (blob: Blob) => {
-    const result = await transcribeAudio(blob, "recording.webm");
-    if (result) {
-      setTranscript(result);
-    }
-  }, [transcribeAudio]);
-
-  // Stats
-  const totalMeetings = meetings?.length || 0;
-  const thisWeek = meetings?.filter((m) => {
-    const d = new Date(m.created_at);
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return d >= weekAgo;
-  }).length || 0;
-  const actionItemsCount = meetings?.reduce((acc, m) => {
-    const items = (m.action_items as string[]) || [];
-    return acc + items.length;
-  }, 0) || 0;
-
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
-  const displayName = firstName || user?.email?.split("@")[0] || "there";
-  const greeting = firstName ? getGreeting(firstName) : "Hi, there 👋";
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-      <Joyride
-        steps={tutorialSteps}
-        run={runTutorial}
-        continuous
-        showProgress
-        showSkipButton
-        disableOverlayClose
-        callback={handleJoyrideCallback}
-        styles={{
-          options: {
-            primaryColor: '#6366f1',
-            zIndex: 1000,
-          },
-          tooltipContainer: {
-            textAlign: 'left',
-          }
-        }}
-      />
-      {/* Header */}
-      <div className="flex items-center justify-between fade-in">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            {greeting}
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 relative">
+      {/* Subtle Mesh Glow */}
+      <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+            <Sparkles className="h-3 w-3" />
+            Active Session
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-[#0A0A0A]">
+            Good morning, {firstName} <span className="animate-pulse">👋</span>
           </h1>
-          <p className="text-muted-foreground text-sm flex items-center gap-2">
-            Here's your meeting overview
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live
-            </span>
+          <p className="text-muted-foreground font-semibold text-lg max-w-md">
+            Your intelligence engine is ready. What are we analyzing today?
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className="rounded-xl">
-            <BarChart3 className="h-4 w-4" />
-            {showAnalytics ? "Hide" : "Analytics"}
-          </Button>
-          <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
-            <Plus className="h-4 w-4" />
-            New Meeting
-          </Button>
+        <div className="flex items-center gap-3">
+           <Button variant="outline" className="h-12 px-6 rounded-2xl bg-white border-black/5 shadow-sm font-bold text-sm">
+             <TrendingUp className="h-4 w-4 mr-2 text-primary" />
+             View Analytics
+           </Button>
+           <Button size="lg" className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-105">
+             <Wand2 className="h-4 w-4 mr-2" />
+             Quick Sync
+           </Button>
         </div>
       </div>
 
-      {/* Input */}
-      {showInput && (
-        <div className="fade-in tour-step-1">
-          <InputCard
-            transcript={transcript}
-            onTranscriptChange={setTranscript}
-            onGenerate={handleGenerate}
-            onAudioFile={handleAudioFile}
-            onRecordingComplete={handleRecordingComplete}
-            isGenerating={createMeeting.isPending}
-            isTranscribing={isTranscribing}
-            transcriptionProgress={transcriptionProgress}
-          />
-        </div>
-      )}
-
-      {createMeeting.isPending && (
-        <div className="notion-card">
-          <LoadingSkeleton />
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in" style={{ animationDelay: "0.1s" }}>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{totalMeetings}</p>
-              <p className="text-xs text-muted-foreground">Total Meetings</p>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up">
+        {[
+          { label: "Total Intelligence", value: "156", sub: "Meetings analyzed", icon: Brain, color: "text-primary bg-primary/10" },
+          { label: "Tasks Unlocked", value: "42", sub: "Action items found", icon: CheckCircle2, color: "text-green-600 bg-green-50" },
+          { label: "Collaboration", value: "8", sub: "Active contributors", icon: Users, color: "text-blue-600 bg-blue-50" }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white/50 backdrop-blur-sm border border-black/5 rounded-[2rem] p-8 shadow-xl hover:shadow-2xl transition-all group overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
+            <div className="relative z-10 flex items-start justify-between">
+               <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                  <h3 className="text-4xl font-black text-[#0A0A0A] tracking-tighter">{stat.value}</h3>
+                  <p className="text-xs font-bold text-muted-foreground opacity-60 tracking-tight italic">{stat.sub}</p>
+               </div>
+               <div className={`h-12 w-12 rounded-[1.2rem] flex items-center justify-center ${stat.color}`}>
+                  <stat.icon className="h-6 w-6" />
+               </div>
             </div>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{thisWeek}</p>
-              <p className="text-xs text-muted-foreground">This Week</p>
-            </div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
-              <ListChecks className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{actionItemsCount}</p>
-              <p className="text-xs text-muted-foreground">Action Items</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Google Calendar */}
-      <div className="fade-in tour-step-2">
-        <CalendarSection
-          events={calendar.events}
-          isConnected={calendar.isConnected}
-          isLoading={calendar.isLoading}
-          onConnect={calendar.connect}
-          onDisconnect={calendar.disconnect}
-          onRefresh={calendar.refetch}
-        />
-      </div>
-
-      {/* Analytics */}
-      {showAnalytics && meetings && (
-        <div className="fade-in">
-          <AnalyticsDashboard meetings={meetings} />
-        </div>
-      )}
-
-
-
-      {/* Meetings list */}
-      <div className="space-y-4 tour-step-3">
-        <h2 className="text-lg font-bold text-foreground">Recent Meetings</h2>
-
-        {loadingMeetings ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="skeleton-pulse h-20 rounded-2xl" />
-            ))}
-          </div>
-        ) : !meetings?.length ? (
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-accent/20 p-12 text-center shadow-sm backdrop-blur-xl fade-in">
-            <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
-            
-            <div className="relative z-10">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-6 border border-primary/20 shadow-inner">
-                <FileText className="h-10 w-10 text-primary animate-pulse" />
-              </div>
-              <h3 className="text-2xl font-bold text-foreground tracking-tight mb-2">No meetings yet</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed mb-6">
-                Your workspace is a blank canvas. Start by entering a transcript, recording audio, or pulling an event from your calendar to instantly generate your first set of intelligent notes!
-              </p>
-              <Button onClick={() => setRunTutorial(true)} variant="outline" className="rounded-xl shadow-sm backdrop-blur-md">
-                Show me around
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {meetings.map((meeting, i) => (
-              <div
-                key={meeting.id}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 fade-slide-in"
-                style={{ animationDelay: `${i * 0.04}s` }}
-              >
-                <Link
-                  to={`/dashboard/meeting/${meeting.id}`}
-                  className="flex-1 min-w-0 space-y-1"
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">{meeting.title}</p>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        meeting.status === "completed"
-                          ? "bg-accent text-accent-foreground"
-                          : meeting.status === "processing"
-                          ? "bg-secondary text-muted-foreground"
-                          : meeting.status === "error"
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {meeting.status}
-                    </span>
-                    {meeting.sentiment && (
-                      <span className="text-xs">
-                        {meeting.sentiment === "positive" ? "😊" : meeting.sentiment === "negative" ? "😟" : "😐"}
-                      </span>
-                    )}
-                    {meeting.productivity_score != null && (
-                      <span className="text-xs text-muted-foreground">⚡{meeting.productivity_score}%</span>
-                    )}
+      {/* Main Intelligence Input */}
+      <div className="grid lg:grid-cols-3 gap-10">
+         <div className="lg:col-span-2 space-y-6">
+            <Card className="rounded-[2.5rem] border-black/5 shadow-2xl overflow-hidden bg-white/80 backdrop-blur-xl group">
+               <CardHeader className="p-8 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-2xl font-black tracking-tighter">
+                     <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                        <Mic className="h-5 w-5 text-white" />
+                     </div>
+                     Intelligence Input
+                  </CardTitle>
+               </CardHeader>
+               <CardContent className="p-8 pt-0 space-y-6">
+                  <div className="relative group/input">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-600/20 rounded-[2rem] blur opacity-0 group-focus-within/input:opacity-100 transition duration-500" />
+                    <Textarea
+                      placeholder="Paste your meeting transcript here (min 5 characters)..."
+                      className="min-h-[280px] rounded-[1.8rem] bg-white border-black/5 p-8 text-lg font-medium resize-none focus-visible:ring-primary shadow-inner relative z-10"
+                      value={transcript}
+                      onChange={(e) => setTranscript(e.target.value)}
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(meeting.created_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {meeting.summary && (
-                      <span className="ml-2">· {meeting.summary.slice(0, 60)}...</span>
-                    )}
+                  
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isCreating}
+                      className="h-14 px-10 rounded-2xl bg-[#0A0A0A] hover:bg-black text-white font-black text-lg flex-1 shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {isCreating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          Analyzing Knowledge...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-5 w-5 mr-3 text-primary" />
+                          Generate Insights
+                        </>
+                      )}
+                    </Button>
+                    <div className="flex gap-2">
+                       <Button variant="outline" className="h-14 w-14 rounded-2xl border-black/5 bg-white shadow-sm hover:bg-black/5 transition-all">
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                       </Button>
+                       <Button variant="outline" className="h-14 w-14 rounded-2xl border-black/5 bg-white shadow-sm hover:bg-black/5 transition-all">
+                          <Mic className="h-6 w-6 text-muted-foreground" />
+                       </Button>
+                    </div>
+                  </div>
+                  <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
+                    Supports Audio, PDF, and Text • encrypted end-to-end
                   </p>
-                </Link>
-                <div className="flex items-center gap-1 ml-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (confirm("Delete this meeting?")) {
-                        deleteMeeting.mutate(meeting.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+               </CardContent>
+            </Card>
+         </div>
+
+         {/* Side Activity Panel */}
+         <div className="space-y-6">
+            <Card className="rounded-[2.5rem] border-black/5 shadow-xl bg-white/60 backdrop-blur-md">
+               <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg font-black tracking-tight text-[#0A0A0A]">Recent Brain Syncs</CardTitle>
+                  <History className="h-4 w-4 text-muted-foreground/50" />
+               </CardHeader>
+               <CardContent className="p-8 pt-2 space-y-6">
+                  {[
+                    { title: "Product Roadmap Sync", time: "2h ago", initials: "PR", color: "bg-blue-100 text-blue-700" },
+                    { title: "Weekly Growth Pulse", time: "5h ago", initials: "GP", color: "bg-primary/10 text-primary" },
+                    { title: "Backend Architecture", time: "Yesterday", initials: "BA", color: "bg-green-100 text-green-700" }
+                  ].map((sync, i) => (
+                    <div key={i} className="flex items-center justify-between group cursor-pointer hover:translate-x-1 transition-transform">
+                       <div className="flex items-center gap-4">
+                          <Avatar className="h-10 w-10">
+                             <AvatarFallback className={`font-black text-[10px] ${sync.color}`}>{sync.initials}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                             <p className="text-sm font-black text-[#0A0A0A] leading-none mb-1">{sync.title}</p>
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">{sync.time}</p>
+                          </div>
+                       </div>
+                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  ))}
+                  <Button variant="ghost" className="w-full h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5">
+                     View All History
                   </Button>
-                  <Link to={`/dashboard/meeting/${meeting.id}`}>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+               </CardContent>
+            </Card>
+
+            {/* Smart Tip Card */}
+            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary to-purple-600 text-white space-y-4 shadow-2xl shadow-primary/20 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -mr-10 -mt-10" />
+               <Zap className="h-8 w-8 text-white relative z-10 group-hover:rotate-12 transition-transform" />
+               <h4 className="text-lg font-black tracking-tight relative z-10">Pro Tip</h4>
+               <p className="text-sm font-bold opacity-80 leading-relaxed relative z-10 italic font-serif">
+                 "Try uploading an audio recording. Our v2 engine now recognizes different speakers automatically."
+               </p>
+            </div>
+         </div>
       </div>
     </div>
   );
