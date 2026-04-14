@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', "true");
@@ -23,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (!supabaseUrl || !GEMINI_API_KEY || !supabaseKey) {
-      return res.status(500).json({ error: "Missing Gemini API Key in Vercel settings." });
+      return res.status(500).json({ error: "Backend config missing (GEMINI_API_KEY)." });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -33,59 +34,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Try Gemini 1.5 Flash first (v1beta)
-    let geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    
-    const prompt = `Analyze this meeting transcript and return a JSON object.
+    // Use official SDK for maximum reliability
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Analyze this meeting transcript and return a JSON object (strictly pure JSON, no markdown):
     
     Transcript:
     ${transcript}
     
-    JSON Template:
+    JSON Format:
     {
-      "summary": "3-5 sentences",
-      "suggestedTitle": "Short title",
-      "actionItems": ["item1", "item2"],
-      "decisions": ["dec1"],
-      "keyPoints": ["point1"],
-      "tasks": [{"task": "description", "owner": "name", "priority": "high|medium|low"}],
+      "summary": "...",
+      "suggestedTitle": "...",
+      "actionItems": [],
+      "decisions": [],
+      "keyPoints": [],
+      "tasks": [{"task": "", "owner": "", "priority": ""}],
       "sentiment": "positive|neutral|negative",
-      "productivityScore": 85,
-      "participationInsights": {"mostActive": "name", "engagementLevel": "high|medium|low", "speakerCount": 3}
-    }
+      "productivityScore": 0-100,
+      "participationInsights": {"mostActive": "", "engagementLevel": "", "speakerCount": 0}
+    }`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let content = response.text();
     
-    Return ONLY pure JSON. No markdown. No text before or after.`;
-
-    let response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
-
-    // Fallback to gemini-pro if flash is not found
-    if (response.status === 404) {
-      console.log("Gemini Flash not found, falling back to gemini-pro...");
-      geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-      response = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      });
-    }
-
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(500).json({ error: `Gemini Error: ${err}` });
-    }
-
-    const data = await response.json();
-    let content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    // Cleanup JSON if AI wrapped it in markdown
+    // Safety check for JSON
     if (content.includes("```json")) {
       content = content.split("```json")[1].split("```")[0];
     } else if (content.includes("```")) {
@@ -114,6 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, notes });
   } catch (error: any) {
+    console.error("Gemini SDK Error:", error);
     return res.status(500).json({ error: error.message });
   }
 }
