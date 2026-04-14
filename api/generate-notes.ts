@@ -61,7 +61,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
       }),
     });
 
@@ -71,8 +70,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    const notes = JSON.parse(content);
+    let content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // Cleanup JSON if AI wrapped it in markdown
+    if (content.includes("```json")) {
+      content = content.split("```json")[1].split("```")[0];
+    } else if (content.includes("```")) {
+      content = content.split("```")[1].split("```")[0];
+    }
+    
+    const notes = JSON.parse(content.trim());
 
     const { error: updateError } = await supabase
       .from("meetings")
