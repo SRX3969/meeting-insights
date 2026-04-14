@@ -21,6 +21,7 @@ import {
 import { InputCard } from "@/components/InputCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { ProcessingOverlay } from "@/components/ProcessingOverlay";
 import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -81,6 +82,8 @@ const Dashboard = () => {
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-10 relative">
+      {createMeeting.isPending && <ProcessingOverlay />}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 fade-in">
         <div className="space-y-1">
           <h1 className="text-3xl font-black tracking-tight text-[#0A0A0A]">

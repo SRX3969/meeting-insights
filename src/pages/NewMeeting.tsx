@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { InputCard } from "@/components/InputCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { LiveTranscription } from "@/components/LiveTranscription";
+import { ProcessingOverlay } from "@/components/ProcessingOverlay";
 import { useCreateMeeting } from "@/hooks/useMeetings";
 import { useAudioTranscription } from "@/hooks/useAudioTranscription";
 import { ArrowLeft } from "lucide-react";
@@ -77,11 +78,8 @@ const NewMeeting = () => {
         </div>
       )}
 
-      {createMeeting.isPending && (
-        <div className="notion-card">
-          <LoadingSkeleton />
-        </div>
-      )}
+      {createMeeting.isPending && <ProcessingOverlay />}
+
     </div>
   );
 };

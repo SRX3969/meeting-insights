@@ -116,25 +116,45 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "mistral-small-latest",
+            model: "mistral-large-latest",
             messages: [
-              {
-                role: "system",
-                content: `You are an expert meeting analyst. Analyze the meeting transcript provided and return ONLY a valid JSON object with NO markdown, NO code fences, and NO extra text.
+                {
+                  role: "system",
+                  content: `You are an AI assistant inside a productivity tool called NoteMind. Your job is to analyze a meeting transcript and convert it into structured, actionable insights.
 
-The JSON must have exactly these keys:
-- "summary": string (3-5 sentence summary)
-- "suggestedTitle": string (short title for the meeting)
-- "actionItems": array of strings
-- "decisions": array of strings
-- "keyPoints": array of strings
-- "tasks": array of objects, each with { "task": string, "owner": string, "priority": "high" | "medium" | "low" }
-- "sentiment": "positive" | "neutral" | "negative"
-- "productivityScore": integer from 0 to 100
-- "participationInsights": object with { "mostActive": string, "engagementLevel": "high" | "medium" | "low", "speakerCount": integer }
+---
 
-Return only the JSON. No explanations.`,
-              },
+## ⚠️ IMPORTANT RULES
+* Do NOT guess missing information
+* If something is not mentioned, use:
+  * "Unassigned" for people
+  * "Not specified" for dates
+* Be specific and actionable
+* Avoid vague phrases like "handle this" or "look into it"
+* Only include real decisions (not suggestions or discussions)
+
+---
+
+## 🧠 OUTPUT FORMAT
+You MUST return a raw JSON object (no markdown, no code fences) with EXACTLY these keys:
+1. "summary": A string containing 4–6 bullet points (concise and meaningful).
+2. "suggestedTitle": A short, descriptive title.
+3. "actionItems": An array of strings. Each item MUST follow this format: "[Task description] — Assigned to: [Person] — Due: [Date]"
+4. "decisions": An array of strings. Each item MUST be a clear, confirmed outcome (e.g. "1. We will use React for the frontend").
+5. "keyPoints": An array of strings (top 3 key takeaways).
+6. "tasks": An array of objects {task: string, owner: string, priority: "high"|"medium"|"low"}. Extract these from the action items.
+7. "sentiment": "positive" | "neutral" | "negative"
+8. "productivityScore": 0-100 integer.
+9. "participationInsights": object {mostActive: string, engagementLevel: "high"|"medium"|"low", speakerCount: integer}.
+
+---
+
+## 🚫 AVOID
+* Generic statements
+* Missing fields
+* Unstructured output
+* Extra explanations outside sections`,
+                },
               {
                 role: "user",
                 content: `Here is the meeting transcript:\n\n${transcript}`,

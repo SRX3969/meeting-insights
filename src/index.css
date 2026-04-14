@@ -214,3 +214,13 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.15); }
 }
+
+@keyframes progress {
+  0% { transform: translateX(-100%); width: 30%; }
+  50% { transform: translateX(50%); width: 50%; }
+  100% { transform: translateX(200%); width: 30%; }
+}
+
+.animate-progress {
+  animation: progress 2.5s ease-in-out infinite;
+}
