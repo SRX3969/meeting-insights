@@ -34,6 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const google = createGoogleGenerativeAI({
       apiKey: apiKey,
+      baseURL: "https://generativelanguage.googleapis.com/v1", // Use stable v1
     });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -43,30 +44,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Use Vercel AI SDK with Google Gemini
-    const { object: notes } = await generateObject({
-      model: google("gemini-1.5-flash"),
-      schema: z.object({
-        summary: z.string().describe("A 3-5 sentence summary of the meeting"),
-        suggestedTitle: z.string().describe("A short, catchy title"),
-        actionItems: z.array(z.string()).describe("List of action items"),
-        decisions: z.array(z.string()).describe("List of key decisions made"),
-        keyPoints: z.array(z.string()).describe("Main points discussed"),
-        tasks: z.array(z.object({
-          task: z.string(),
-          owner: z.string(),
-          priority: z.enum(["high", "medium", "low"])
-        })),
-        sentiment: z.enum(["positive", "neutral", "negative"]),
-        productivityScore: z.number().min(0).max(100),
-        participationInsights: z.object({
-          mostActive: z.string(),
-          engagementLevel: z.enum(["high", "medium", "low"]),
-          speakerCount: z.number()
-        })
-      }),
-      prompt: `Analyze this meeting transcript and extract structured notes: ${transcript}`,
-    });
+    // Try Flash, then Pro
+    let modelName = "gemini-1.5-flash";
+    let notesResult;
+
+    try {
+      const result = await generateObject({
+        model: google(modelName),
+        schema: z.object({
+          summary: z.string(),
+          suggestedTitle: z.string(),
+          actionItems: z.array(z.string()),
+          decisions: z.array(z.string()),
+          keyPoints: z.array(z.string()),
+          tasks: z.array(z.object({
+            task: z.string(),
+            owner: z.string(),
+            priority: z.enum(["high", "medium", "low"])
+          })),
+          sentiment: z.enum(["positive", "neutral", "negative"]),
+          productivityScore: z.number(),
+          participationInsights: z.object({
+            mostActive: z.string(),
+            engagementLevel: z.enum(["high", "medium", "low"]),
+            speakerCount: z.number()
+          })
+        }),
+        prompt: `Analyze this transcript: ${transcript}`,
+      });
+      notesResult = result.object;
+    } catch (e) {
+      console.log("Flash failed, trying Pro...");
+      const result = await generateObject({
+        model: google("gemini-1.5-pro"), // Fallback
+        schema: z.object({
+          summary: z.string(),
+          suggestedTitle: z.string(),
+          actionItems: z.array(z.string()),
+          decisions: z.array(z.string()),
+          keyPoints: z.array(z.string()),
+          tasks: z.array(z.object({
+            task: z.string(),
+            owner: z.string(),
+            priority: z.enum(["high", "medium", "low"])
+          })),
+          sentiment: z.enum(["positive", "neutral", "negative"]),
+          productivityScore: z.number(),
+          participationInsights: z.object({
+            mostActive: z.string(),
+            engagementLevel: z.enum(["high", "medium", "low"]),
+            speakerCount: z.number()
+          })
+        }),
+        prompt: `Analyze this transcript: ${transcript}`,
+      });
+      notesResult = result.object;
+    }
+
+    const notes = notesResult;
 
     const { error: updateError } = await supabase
       .from("meetings")
