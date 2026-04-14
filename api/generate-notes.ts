@@ -1,8 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
@@ -44,64 +43,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Try Flash, then Pro
-    let modelName = "gemini-1.5-flash";
-    let notesResult;
+    // Use generateText (NOT generateObject) to avoid unsupported schema fields on v1
+    const { text } = await generateText({
+      model: google("gemini-1.5-flash"),
+      prompt: `Analyze this transcript and return ONLY a JSON object (no markdown, no extra text):
+      
+      Transcript:
+      ${transcript}
+      
+      JSON Structure:
+      {
+        "summary": "...",
+        "suggestedTitle": "...",
+        "actionItems": [],
+        "decisions": [],
+        "keyPoints": [],
+        "tasks": [{"task": "", "owner": "", "priority": ""}],
+        "sentiment": "positive|neutral|negative",
+        "productivityScore": 0-100,
+        "participationInsights": {"mostActive": "", "engagementLevel": "high|medium|low", "speakerCount": 0}
+      }`,
+    });
 
-    try {
-      const result = await generateObject({
-        model: google(modelName),
-        schema: z.object({
-          summary: z.string(),
-          suggestedTitle: z.string(),
-          actionItems: z.array(z.string()),
-          decisions: z.array(z.string()),
-          keyPoints: z.array(z.string()),
-          tasks: z.array(z.object({
-            task: z.string(),
-            owner: z.string(),
-            priority: z.enum(["high", "medium", "low"])
-          })),
-          sentiment: z.enum(["positive", "neutral", "negative"]),
-          productivityScore: z.number(),
-          participationInsights: z.object({
-            mostActive: z.string(),
-            engagementLevel: z.enum(["high", "medium", "low"]),
-            speakerCount: z.number()
-          })
-        }),
-        prompt: `Analyze this transcript: ${transcript}`,
-      });
-      notesResult = result.object;
-    } catch (e) {
-      console.log("Flash failed, trying Pro...");
-      const result = await generateObject({
-        model: google("gemini-1.5-pro"), // Fallback
-        schema: z.object({
-          summary: z.string(),
-          suggestedTitle: z.string(),
-          actionItems: z.array(z.string()),
-          decisions: z.array(z.string()),
-          keyPoints: z.array(z.string()),
-          tasks: z.array(z.object({
-            task: z.string(),
-            owner: z.string(),
-            priority: z.enum(["high", "medium", "low"])
-          })),
-          sentiment: z.enum(["positive", "neutral", "negative"]),
-          productivityScore: z.number(),
-          participationInsights: z.object({
-            mostActive: z.string(),
-            engagementLevel: z.enum(["high", "medium", "low"]),
-            speakerCount: z.number()
-          })
-        }),
-        prompt: `Analyze this transcript: ${transcript}`,
-      });
-      notesResult = result.object;
+    let content = text.trim();
+    
+    // Safety check for JSON wrapping
+    if (content.includes("```json")) {
+      content = content.split("```json")[1].split("```")[0];
+    } else if (content.includes("```")) {
+      content = content.split("```")[1].split("```")[0];
     }
-
-    const notes = notesResult;
+    
+    const notes = JSON.parse(content.trim());
 
     const { error: updateError } = await supabase
       .from("meetings")
@@ -123,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, notes });
   } catch (error: any) {
-    console.error("Vercel AI SDK Error:", error);
+    console.error("AI Error:", error);
     return res.status(500).json({ error: error.message });
   }
 }
