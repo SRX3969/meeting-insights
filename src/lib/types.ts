@@ -8,7 +8,6 @@ export interface MeetingNotes {
   summary: string;
   actionItems: string[];
   decisions: string[];
-  keyPoints: string[];
   tasks: MeetingTask[];
 }
 

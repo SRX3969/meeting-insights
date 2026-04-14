@@ -23,32 +23,24 @@ export function useGoogleCalendar() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) {
-        setIsConnected(false);
-        setEvents([]);
-        return;
-      }
+      const { data, error } = await supabase.functions.invoke("google-calendar", {
+        body: {},
+        headers: { "Content-Type": "application/json" },
+      });
 
+      // The function uses query params, so we need to call differently
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar?action=events`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({}),
         }
       );
-
-      if (!res.ok) {
-        console.error("Calendar API returned", res.status);
-        setIsConnected(false);
-        setEvents([]);
-        return;
-      }
 
       const result = await res.json();
       if (result.error === "not_connected") {
@@ -60,7 +52,6 @@ export function useGoogleCalendar() {
       }
     } catch (err) {
       console.error("Calendar fetch error:", err);
-      setIsConnected(false);
     } finally {
       setIsLoading(false);
     }

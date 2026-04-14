@@ -1,192 +1,269 @@
-import { useState } from "react";
-import { Brain, Sparkles, Mic, History as HistoryIcon, CheckCircle2, TrendingUp, Users, ArrowRight, Zap, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useMeetings } from "@/hooks/useMeetings";
+import { useState, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { InputCard } from "@/components/InputCard";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { useCreateMeeting, useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
+import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
+import { Plus, FileText, ChevronRight, Trash2, CalendarDays, ListChecks, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarSection } from "@/components/CalendarSection";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+
+function getGreeting(name: string) {
+  const hour = new Date().getHours();
+  if (hour < 12) return `Good Morning, ${name} ☀️`;
+  if (hour < 17) return `Good Afternoon, ${name} 🌤️`;
+  return `Good Evening, ${name} 🌙`;
+}
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { createMeeting, isCreating } = useMeetings();
-  const [transcript, setTranscript] = useState("");
+  const { data: meetings, isLoading: loadingMeetings } = useMeetings();
+  const createMeeting = useCreateMeeting();
+  const deleteMeeting = useDeleteMeeting();
   const navigate = useNavigate();
+  const calendar = useGoogleCalendar();
 
-  const handleGenerate = async () => {
-    if (!transcript.trim() || transcript.length < 5) {
-      toast.error("Please provide a valid transcript (min 5 characters).");
-      return;
-    }
+  const [transcript, setTranscript] = useState("");
+  const [showInput, setShowInput] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
+  const handleGenerate = useCallback(async () => {
+    if (!transcript.trim()) return;
     try {
       const meeting = await createMeeting.mutateAsync({
+        title: `Meeting ${new Date().toLocaleDateString()}`,
         transcript,
-        title: "New Meeting Analysis",
-        date: new Date().toISOString(),
       });
       setTranscript("");
-      // Automatically navigate to the detail page where the user can see it processing
-      navigate(`/dashboard/meeting/${meeting.id}`);
-    } catch (error: any) {
-      // Error handled in hook
+      setShowInput(false);
+      setTimeout(() => navigate(`/dashboard/meeting/${meeting.id}`), 1000);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, [transcript, createMeeting, navigate]);
 
-  const firstName = profile?.full_name?.split(" ")[0] || "there";
+  const handleAudioFile = useCallback((file: File) => {
+    setTranscript(
+      `[Audio file uploaded: ${file.name}]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
+    );
+  }, []);
+
+  const handleRecordingComplete = useCallback((blob: Blob) => {
+    setTranscript(
+      `[Audio recorded: ${(blob.size / 1024).toFixed(1)}KB]\n\nAudio transcription will be available in a future update. For now, paste your transcript to generate notes.`
+    );
+  }, []);
+
+  // Stats
+  const totalMeetings = meetings?.length || 0;
+  const thisWeek = meetings?.filter((m) => {
+    const d = new Date(m.created_at);
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return d >= weekAgo;
+  }).length || 0;
+  const actionItemsCount = meetings?.reduce((acc, m) => {
+    const items = (m.action_items as string[]) || [];
+    return acc + items.length;
+  }, 0) || 0;
+
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const displayName = firstName || user?.email?.split("@")[0] || "there";
+  const greeting = firstName ? getGreeting(firstName) : "Hi, there 👋";
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 relative">
-      {/* Mesh background effect */}
-      <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
-
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 fade-in">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
-            <Sparkles className="h-3 w-3" />
-            Intelligence Sync Live
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-[#0A0A0A]">
-            Good morning, {firstName} <span className="inline-block animate-pulse">👋</span>
+    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between fade-in">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            {greeting}
           </h1>
-          <p className="text-muted-foreground font-semibold text-lg max-w-md leading-relaxed">
-            Your intelligence engine is synchronized. Ready for a new analysis?
+          <p className="text-muted-foreground text-sm flex items-center gap-2">
+            Here's your meeting overview
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              Live
+            </span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
-           <Button variant="outline" className="h-12 px-6 rounded-2xl bg-white border-black/5 shadow-sm font-bold text-sm hover:bg-black/5 transition-all">
-             <TrendingUp className="h-4 w-4 mr-2 text-primary" />
-             Insights
-           </Button>
-           <Button className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-             <Zap className="h-4 w-4 mr-2" />
-             New Meeting
-           </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowAnalytics(!showAnalytics)} className="rounded-xl">
+            <BarChart3 className="h-4 w-4" />
+            {showAnalytics ? "Hide" : "Analytics"}
+          </Button>
+          <Button onClick={() => setShowInput(!showInput)} className="rounded-xl">
+            <Plus className="h-4 w-4" />
+            New Meeting
+          </Button>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 slide-up">
-        {[
-          { label: "Intelligence", value: "156", sub: "Analyses", icon: Brain, color: "text-primary bg-primary/10" },
-          { label: "Action items", value: "42", sub: "Pending", icon: CheckCircle2, color: "text-green-600 bg-green-50" },
-          { label: "Active Contributors", value: "8", sub: "Team", icon: Users, color: "text-blue-600 bg-blue-50" }
-        ].map((stat, i) => (
-          <Card key={i} className="rounded-[2.5rem] border-black/5 shadow-xl hover:shadow-2xl transition-all group overflow-hidden bg-white/50 backdrop-blur-sm">
-            <CardContent className="p-8">
-               <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{stat.label}</p>
-                    <h3 className="text-4xl font-black text-[#0A0A0A] tracking-tighter">{stat.value}</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground/40 italic">{stat.sub}</p>
-                  </div>
-                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${stat.color} shadow-sm`}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-               </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in" style={{ animationDelay: "0.1s" }}>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <BarChart3 className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalMeetings}</p>
+              <p className="text-xs text-muted-foreground">Total Meetings</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <CalendarDays className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{thisWeek}</p>
+              <p className="text-xs text-muted-foreground">This Week</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center">
+              <ListChecks className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{actionItemsCount}</p>
+              <p className="text-xs text-muted-foreground">Action Items</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-10 items-start">
-         {/* Input Panel */}
-         <div className="lg:col-span-2 space-y-6 slide-up" style={{ animationDelay: '0.1s' }}>
-            <Card className="rounded-[3rem] border-black/5 shadow-2xl overflow-hidden bg-white/80 backdrop-blur-xl transition-all duration-500 hover:shadow-primary/5">
-               <CardHeader className="px-10 pt-8 pb-4">
-                  <CardTitle className="flex items-center gap-4 text-2xl font-black tracking-tighter">
-                     <div className="h-12 w-12 rounded-2xl bg-[#0A0A0A] flex items-center justify-center shadow-lg">
-                        <Mic className="h-6 w-6 text-white" />
-                     </div>
-                     New Transformation
-                  </CardTitle>
-               </CardHeader>
-               <CardContent className="px-10 pb-10 pt-4 space-y-6">
-                  <div className="group/input relative">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-[2.2rem] blur-xl opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-700" />
-                    <Textarea
-                      placeholder="Paste your meeting transcript here... (min 5 characters)"
-                      className="min-h-[280px] rounded-[2rem] bg-white border-black/5 p-8 text-lg font-medium resize-none focus-visible:ring-primary shadow-inner relative z-10"
-                      value={transcript}
-                      onChange={(e) => setTranscript(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <Button
-                      onClick={handleGenerate}
-                      disabled={isCreating}
-                      className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl flex-1 shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] active:scale-[0.98]"
+      {/* Google Calendar */}
+      <div className="fade-in">
+        <CalendarSection
+          events={calendar.events}
+          isConnected={calendar.isConnected}
+          isLoading={calendar.isLoading}
+          onConnect={calendar.connect}
+          onDisconnect={calendar.disconnect}
+        />
+      </div>
+
+      {/* Analytics */}
+      {showAnalytics && meetings && (
+        <div className="fade-in">
+          <AnalyticsDashboard meetings={meetings} />
+        </div>
+      )}
+
+      {/* Input */}
+      {showInput && (
+        <div className="fade-in">
+          <InputCard
+            transcript={transcript}
+            onTranscriptChange={setTranscript}
+            onGenerate={handleGenerate}
+            onAudioFile={handleAudioFile}
+            onRecordingComplete={handleRecordingComplete}
+            isGenerating={createMeeting.isPending}
+          />
+        </div>
+      )}
+
+      {createMeeting.isPending && (
+        <div className="notion-card">
+          <LoadingSkeleton />
+        </div>
+      )}
+
+      {/* Meetings list */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-foreground">Recent Meetings</h2>
+
+        {loadingMeetings ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton-pulse h-20 rounded-2xl" />
+            ))}
+          </div>
+        ) : !meetings?.length ? (
+          <div className="notion-card text-center py-16 fade-in">
+            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-muted-foreground">No meetings yet. Create your first one!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {meetings.map((meeting, i) => (
+              <div
+                key={meeting.id}
+                className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 fade-slide-in"
+                style={{ animationDelay: `${i * 0.04}s` }}
+              >
+                <Link
+                  to={`/dashboard/meeting/${meeting.id}`}
+                  className="flex-1 min-w-0 space-y-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground truncate">{meeting.title}</p>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        meeting.status === "completed"
+                          ? "bg-accent text-accent-foreground"
+                          : meeting.status === "processing"
+                          ? "bg-secondary text-muted-foreground"
+                          : meeting.status === "error"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
                     >
-                      {isCreating ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-4" />
-                          Analyzing Knowledge...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-6 w-6 mr-4" />
-                          Transform Transcript
-                        </>
-                      )}
-                    </Button>
-                    <div className="flex gap-4 w-full sm:w-auto">
-                       <Button variant="outline" className="h-16 w-16 rounded-2xl border-black/5 bg-white shadow-sm hover:bg-accent transition-all">
-                          <Brain className="h-7 w-7 text-muted-foreground" />
-                       </Button>
-                    </div>
+                      {meeting.status}
+                    </span>
+                    {meeting.sentiment && (
+                      <span className="text-xs">
+                        {meeting.sentiment === "positive" ? "😊" : meeting.sentiment === "negative" ? "😟" : "😐"}
+                      </span>
+                    )}
+                    {meeting.productivity_score != null && (
+                      <span className="text-xs text-muted-foreground">⚡{meeting.productivity_score}%</span>
+                    )}
                   </div>
-                  <p className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 flex items-center justify-center gap-3">
-                    <Shield className="h-3 w-3" /> Encrypted Session • Powered by Mistral v2
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(meeting.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {meeting.summary && (
+                      <span className="ml-2">· {meeting.summary.slice(0, 60)}...</span>
+                    )}
                   </p>
-               </CardContent>
-            </Card>
-         </div>
-
-         {/* Sidebar History Panel */}
-         <div className="space-y-6 slide-up" style={{ animationDelay: '0.2s' }}>
-            <Card className="rounded-[2.5rem] border-black/5 shadow-xl bg-white/60 backdrop-blur-md">
-               <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg font-black tracking-tight text-[#0A0A0A]">Recent Brain Syncs</CardTitle>
-                  <HistoryIcon className="h-4 w-4 text-muted-foreground/40" />
-               </CardHeader>
-               <CardContent className="p-8 pt-2 space-y-6">
-                  {[
-                    { title: "Product Roadmap Sync", time: "2h ago", initials: "PR", color: "bg-indigo-100 text-indigo-700" },
-                    { title: "Weekly Growth Pulse", time: "5h ago", initials: "GP", color: "bg-primary/10 text-primary" },
-                    { title: "Backend Architecture", time: "Yesterday", initials: "BA", color: "bg-emerald-100 text-emerald-700" }
-                  ].map((sync, i) => (
-                    <div key={i} className="flex items-center justify-between group cursor-pointer hover:translate-x-1 transition-transform">
-                       <div className="flex items-center gap-4">
-                          <Avatar className="h-11 w-11 rounded-2xl">
-                             <AvatarFallback className={`font-black text-[10px] rounded-2xl ${sync.color}`}>{sync.initials}</AvatarFallback>
-                          </Avatar>
-                          <div className="text-left">
-                             <p className="text-sm font-black text-[#0A0A0A] leading-none mb-1">{sync.title}</p>
-                             <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{sync.time}</p>
-                          </div>
-                       </div>
-                       <ArrowRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                    </div>
-                  ))}
-                  <Button variant="ghost" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors">
-                     Explore History
+                </Link>
+                <div className="flex items-center gap-1 ml-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (confirm("Delete this meeting?")) {
+                        deleteMeeting.mutate(meeting.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
                   </Button>
-               </CardContent>
-            </Card>
-
-            <div className="p-10 rounded-[2.5rem] bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] text-white space-y-4 shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16" />
-               <Zap className="h-8 w-8 text-primary relative z-10 group-hover:rotate-12 transition-transform" />
-               <h4 className="text-xl font-black tracking-tight relative z-10 leading-none">Pro Insight</h4>
-               <p className="text-sm font-bold text-white/50 leading-relaxed relative z-10 italic">
-                 "Paste the raw notes from your Slack or Zoom. Our AI handles the cleaning automatically."
-               </p>
-            </div>
-         </div>
+                  <Link to={`/dashboard/meeting/${meeting.id}`}>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

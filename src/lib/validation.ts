@@ -3,7 +3,7 @@ import { z } from "zod";
 export const transcriptSchema = z
   .string()
   .trim()
-  .min(5, "Transcript must be at least 5 characters")
+  .min(50, "Transcript must be at least 50 characters")
   .max(50000, "Transcript must be under 50,000 characters");
 
 export const actionItemSchema = z.object({

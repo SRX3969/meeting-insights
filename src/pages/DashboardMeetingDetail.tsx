@@ -1,44 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
 import { OutputTabs } from "@/components/OutputTabs";
-import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users, FileText } from "lucide-react";
+import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingNotes } from "@/lib/types";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
-import html2pdf from "html2pdf.js";
-
-const ProcessingStatus = () => {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    // Fake progress from 0 to 99%
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 99) return 99;
-        const incr = Math.random() * 5 + 1; // 1 to 6
-        return Math.min(99, prev + incr);
-      });
-    }, 400);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="notion-card text-center py-14 fade-in max-w-md mx-auto space-y-4">
-      <div className="inline-flex items-center gap-2 text-foreground font-medium">
-        <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-        AI is generating your notes...
-      </div>
-      <div className="relative h-2 w-full bg-secondary rounded-full overflow-hidden">
-        <div 
-          className="absolute top-0 left-0 h-full bg-primary transition-all duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p className="text-sm text-muted-foreground">{Math.round(progress)}% complete</p>
-    </div>
-  );
-};
 
 const DashboardMeetingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,8 +44,6 @@ const DashboardMeetingDetail = () => {
     const decisions = (meeting.decisions as string[]) || [];
     const tasks = (meeting.tasks as { task: string; owner: string; priority: string }[]) || [];
 
-    const keyPoints = (meeting.key_points as string[]) || [];
-
     const content = [
       `# ${meeting.title}`,
       "",
@@ -88,9 +52,6 @@ const DashboardMeetingDetail = () => {
       "",
       "## Action Items",
       ...items.map((i) => `- ${i}`),
-      "",
-      "## Key Points",
-      ...keyPoints.map((p) => `- ${p}`),
       "",
       "## Decisions",
       ...decisions.map((d) => `- ${d}`),
@@ -117,26 +78,6 @@ const DashboardMeetingDetail = () => {
     a.download = `${meeting.title || "meeting-notes"}.md`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadPdf = () => {
-    if (!meeting) return;
-    const element = document.getElementById("meeting-export-content");
-    if (!element) {
-      toast.error("Could not find content to export");
-      return;
-    }
-    const opt = {
-      margin: 0.5,
-      filename: `${meeting.title || "meeting-notes"}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-    };
-    toast.success("Generating PDF...");
-    html2pdf().set(opt).from(element).save().then(() => {
-      toast.success("PDF Downloaded successfully!");
-    });
   };
 
   const handleShare = () => {
@@ -171,7 +112,6 @@ const DashboardMeetingDetail = () => {
           summary: meeting.summary,
           actionItems: (meeting.action_items as string[]) || [],
           decisions: (meeting.decisions as string[]) || [],
-          keyPoints: (meeting.key_points as string[]) || [],
           tasks: ((meeting.tasks as any[]) || []).map((t) => ({
             task: t.task,
             owner: t.owner,
@@ -213,11 +153,8 @@ const DashboardMeetingDetail = () => {
                 <Button variant="outline" size="sm" onClick={handleCopyNotes} className="rounded-xl">
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button title="Export as PDF" variant="outline" size="sm" onClick={handleDownloadPdf} className="rounded-xl">
-                  <Download className="h-4 w-4 mr-1.5" /> PDF
-                </Button>
-                <Button title="Export as Markdown" variant="outline" size="sm" onClick={handleDownload} className="rounded-xl">
-                  <FileText className="h-4 w-4 mr-1.5" /> MD
+                <Button variant="outline" size="sm" onClick={handleDownload} className="rounded-xl">
+                  <Download className="h-4 w-4" />
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleShare} className="rounded-xl">
                   <Share2 className="h-4 w-4" />
@@ -231,7 +168,14 @@ const DashboardMeetingDetail = () => {
         </div>
       </div>
 
-      {meeting.status === "processing" && <ProcessingStatus />}
+      {meeting.status === "processing" && (
+        <div className="notion-card text-center py-14 fade-in">
+          <div className="inline-flex items-center gap-2 text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            AI is generating your notes...
+          </div>
+        </div>
+      )}
 
       {meeting.status === "error" && (
         <div className="notion-card text-center py-14 fade-in border-destructive/20 space-y-3">
@@ -286,7 +230,7 @@ const DashboardMeetingDetail = () => {
       )}
 
       {notes && (
-        <div id="meeting-export-content" className="fade-in" style={{ animationDelay: "0.1s" }}>
+        <div className="fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
             <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
             <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>
