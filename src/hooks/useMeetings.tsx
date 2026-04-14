@@ -126,13 +126,20 @@ export function useCreateMeeting() {
         .single();
       if (insertError) throw insertError;
 
-      const { data, error } = await supabase.functions.invoke("generate-notes", {
-        body: { meetingId: meeting.id, transcript },
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch("/api/generate-notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({ meetingId: meeting.id, transcript }),
       });
 
-      if (error) {
+      if (!response.ok) {
         toast.error("AI processing failed. Please try again.");
-        throw error;
+        throw new Error(`Migration error: ${response.status}`);
       }
 
       return meeting;
