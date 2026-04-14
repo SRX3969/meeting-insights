@@ -33,8 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Call Gemini API (Free tier) - using v1 for better stability
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // Try Gemini 1.5 Flash first (v1beta)
+    let geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     
     const prompt = `Analyze this meeting transcript and return a JSON object.
     
@@ -56,13 +56,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     Return ONLY pure JSON. No markdown. No text before or after.`;
 
-    const response = await fetch(geminiUrl, {
+    let response = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
       }),
     });
+
+    // Fallback to gemini-pro if flash is not found
+    if (response.status === 404) {
+      console.log("Gemini Flash not found, falling back to gemini-pro...");
+      geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+      response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      });
+    }
 
     if (!response.ok) {
       const err = await response.text();
