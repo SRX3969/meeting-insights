@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateObject } from "ai";
+import { google } from "@ai-sdk/google";
+import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', "true");
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -34,40 +37,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Use official SDK for maximum reliability
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `Analyze this meeting transcript and return a JSON object (strictly pure JSON, no markdown):
-    
-    Transcript:
-    ${transcript}
-    
-    JSON Format:
-    {
-      "summary": "...",
-      "suggestedTitle": "...",
-      "actionItems": [],
-      "decisions": [],
-      "keyPoints": [],
-      "tasks": [{"task": "", "owner": "", "priority": ""}],
-      "sentiment": "positive|neutral|negative",
-      "productivityScore": 0-100,
-      "participationInsights": {"mostActive": "", "engagementLevel": "", "speakerCount": 0}
-    }`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let content = response.text();
-    
-    // Safety check for JSON
-    if (content.includes("```json")) {
-      content = content.split("```json")[1].split("```")[0];
-    } else if (content.includes("```")) {
-      content = content.split("```")[1].split("```")[0];
-    }
-    
-    const notes = JSON.parse(content.trim());
+    // Use Vercel AI SDK with Google Gemini
+    const { object: notes } = await generateObject({
+      model: google("gemini-1.5-flash"),
+      apiKey: GEMINI_API_KEY,
+      schema: z.object({
+        summary: z.string().describe("A 3-5 sentence summary of the meeting"),
+        suggestedTitle: z.string().describe("A short, catchy title"),
+        actionItems: z.array(z.string()).describe("List of action items"),
+        decisions: z.array(z.string()).describe("List of key decisions made"),
+        keyPoints: z.array(z.string()).describe("Main points discussed"),
+        tasks: z.array(z.object({
+          task: z.string(),
+          owner: z.string(),
+          priority: z.enum(["high", "medium", "low"])
+        })),
+        sentiment: z.enum(["positive", "neutral", "negative"]),
+        productivityScore: z.number().min(0).max(100),
+        participationInsights: z.object({
+          mostActive: z.string(),
+          engagementLevel: z.enum(["high", "medium", "low"]),
+          speakerCount: z.number()
+        })
+      }),
+      prompt: `Analyze this meeting transcript and extract structured notes: ${transcript}`,
+    });
 
     const { error: updateError } = await supabase
       .from("meetings")
@@ -89,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true, notes });
   } catch (error: any) {
-    console.error("Gemini SDK Error:", error);
+    console.error("Vercel AI SDK Error:", error);
     return res.status(500).json({ error: error.message });
   }
 }
