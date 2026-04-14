@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { generateText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateObject } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
@@ -24,16 +25,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    // The Vercel AI SDK looks for GOOGLE_GENERATIVE_AI_API_KEY
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    // We are switching to Groq (via Vercel AI SDK) for 100% regional stability
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-    if (!supabaseUrl || !apiKey || !supabaseKey) {
-      return res.status(500).json({ error: "Backend config missing (GOOGLE_GENERATIVE_AI_API_KEY)." });
+    if (!supabaseUrl || !GROQ_API_KEY || !supabaseKey) {
+      return res.status(500).json({ error: "Backend config missing (GROQ_API_KEY)." });
     }
 
-    const google = createGoogleGenerativeAI({
-      apiKey: apiKey,
-      baseURL: "https://generativelanguage.googleapis.com/v1", // Use stable v1
+    const groq = createOpenAI({
+      baseURL: "https://api.groq.com/openai/v1",
+      apiKey: GROQ_API_KEY,
     });
 
     const supabase = createClient(supabaseUrl as string, supabaseKey as string);
@@ -43,38 +44,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Use generateText (NOT generateObject) to avoid unsupported schema fields on v1
-    const { text } = await generateText({
-      model: google("gemini-1.5-flash"),
-      prompt: `Analyze this transcript and return ONLY a JSON object (no markdown, no extra text):
-      
-      Transcript:
-      ${transcript}
-      
-      JSON Structure:
-      {
-        "summary": "...",
-        "suggestedTitle": "...",
-        "actionItems": [],
-        "decisions": [],
-        "keyPoints": [],
-        "tasks": [{"task": "", "owner": "", "priority": ""}],
-        "sentiment": "positive|neutral|negative",
-        "productivityScore": 0-100,
-        "participationInsights": {"mostActive": "", "engagementLevel": "high|medium|low", "speakerCount": 0}
-      }`,
+    // Using Llama 3 on Groq - It's 10x faster and available everywhere
+    const { object: notes } = await generateObject({
+      model: groq("llama-3.3-70b-versatile"), // Powerful Llama 3 model
+      schema: z.object({
+        summary: z.string(),
+        suggestedTitle: z.string(),
+        actionItems: z.array(z.string()),
+        decisions: z.array(z.string()),
+        keyPoints: z.array(z.string()),
+        tasks: z.array(z.object({
+          task: z.string(),
+          owner: z.string(),
+          priority: z.enum(["high", "medium", "low"])
+        })),
+        sentiment: z.enum(["positive", "neutral", "negative"]),
+        productivityScore: z.number(),
+        participationInsights: z.object({
+          mostActive: z.string(),
+          engagementLevel: z.enum(["high", "medium", "low"]),
+          speakerCount: z.number()
+        })
+      }),
+      prompt: `Analyze this meeting transcript and return structured insights: ${transcript}`,
     });
-
-    let content = text.trim();
-    
-    // Safety check for JSON wrapping
-    if (content.includes("```json")) {
-      content = content.split("```json")[1].split("```")[0];
-    } else if (content.includes("```")) {
-      content = content.split("```")[1].split("```")[0];
-    }
-    
-    const notes = JSON.parse(content.trim());
 
     const { error: updateError } = await supabase
       .from("meetings")
