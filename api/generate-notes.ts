@@ -1,55 +1,57 @@
 import { createClient } from "@supabase/supabase-js";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const config = {
-  runtime: "edge",
-};
+// Standard Vercel Serverless Function (Node.js) instead of Edge
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-export default async function handler(req: Request) {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
   try {
-    const { meetingId, transcript } = await req.json();
+    const { meetingId, transcript } = req.body;
+    
     if (!transcript || !meetingId) {
-      return new Response(JSON.stringify({ error: "meetingId and transcript are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return res.status(400).json({ error: "meetingId and transcript are required" });
     }
 
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.authorization;
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     if (!supabaseUrl || !anonKey || !OPENAI_API_KEY || !supabaseKey) {
-      console.error("Missing Env variables");
-      return new Response(
-        JSON.stringify({ error: "Server configuration missing API credentials." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("Missing Env variables:", { 
+        url: !!supabaseUrl, 
+        anon: !!anonKey, 
+        openai: !!OPENAI_API_KEY, 
+        service: !!supabaseKey 
+      });
+      return res.status(500).json({ error: "Backend configuration missing. Ensure SUPABASE_SERVICE_ROLE_KEY and OPENAI_API_KEY are in Vercel." });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader! } },
+      global: { headers: { Authorization: authHeader } },
     });
 
+    // Verify User
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return res.status(401).json({ error: "Unauthorized access" });
     }
 
+    // Call OpenAI
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -61,100 +63,38 @@ export default async function handler(req: Request) {
         messages: [
           {
             role: "system",
-            content: `You are a meeting notes assistant. Analyze the meeting transcript and extract structured notes. Return a JSON object with these fields:
-- summary: A concise 3-5 sentence summary of the meeting
-- actionItems: An array of action item strings
-- decisions: An array of key decisions made
-- keyPoints: An array of important points discussed
-- tasks: An array of objects with { task: string, owner: string, priority: "high" | "medium" | "low" }
-- suggestedTitle: A short descriptive title for this meeting
-- sentiment: One of "positive", "neutral", or "negative" based on the overall meeting tone
-- productivityScore: An integer from 0-100 indicating how productive the meeting was (100 = very productive, clear outcomes; 0 = unproductive, no decisions)
-- participationInsights: An object with { mostActive: string (name of most active participant or "Unknown"), engagementLevel: "high" | "medium" | "low", speakerCount: number (estimated number of distinct speakers) }
-
-Be thorough but concise. If owners aren't clear, use "Unassigned".`,
+            content: `You are a meeting notes assistant. Extract structured insights from the transcript. 
+            Return JSON with: summary, suggestedTitle, actionItems (array), decisions (array), keyPoints (array), 
+            tasks (array of {task, owner, priority}), sentiment, productivityScore (0-100), participationInsights ({mostActive, engagementLevel, speakerCount}).`
           },
-          {
-            role: "user",
-            content: `Here is the meeting transcript:\n\n${transcript}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_meeting_notes",
-              description: "Extract structured meeting notes with insights from a transcript",
-              parameters: {
-                type: "object",
-                properties: {
-                  summary: { type: "string" },
-                  suggestedTitle: { type: "string" },
-                  actionItems: { type: "array", items: { type: "string" } },
-                  decisions: { type: "array", items: { type: "string" } },
-                  keyPoints: { type: "array", items: { type: "string" } },
-                  tasks: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        task: { type: "string" },
-                        owner: { type: "string" },
-                        priority: { type: "string", enum: ["high", "medium", "low"] },
-                      },
-                      required: ["task", "owner", "priority"],
-                    },
-                  },
-                  sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
-                  productivityScore: { type: "integer", minimum: 0, maximum: 100 },
-                  participationInsights: {
-                    type: "object",
-                    properties: {
-                      mostActive: { type: "string" },
-                      engagementLevel: { type: "string", enum: ["high", "medium", "low"] },
-                      speakerCount: { type: "integer" },
-                    },
-                    required: ["mostActive", "engagementLevel", "speakerCount"],
-                  },
-                },
-                required: [
-                  "summary",
-                  "suggestedTitle",
-                  "actionItems",
-                  "decisions",
-                  "keyPoints",
-                  "tasks",
-                  "sentiment",
-                  "productivityScore",
-                  "participationInsights",
-                ],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_meeting_notes" } },
+          { role: "user", content: transcript }
+        ]
       }),
     });
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("OpenAI error:", aiResponse.status, errText);
-      await supabase.from("meetings").update({ status: "error" }).eq("id", meetingId);
-      return new Response(JSON.stringify({ error: `OpenAI API error: ${aiResponse.status} - ${errText}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return res.status(500).json({ error: `OpenAI Error: ${aiResponse.status} - ${errText}` });
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
-      console.error("No tool call in AI response:", aiData);
-      throw new Error("No structured output from AI. Verify transcript has enough content.");
+    const content = aiData.choices?.[0]?.message?.content;
+    
+    // Fallback if it's not JSON
+    let notes;
+    try {
+      // Handle potential markdown wrapping
+      const jsonStr = content.includes('```json') 
+        ? content.split('```json')[1].split('```')[0] 
+        : content;
+      notes = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error("Failed to parse AI response:", content);
+      return res.status(500).json({ error: "AI returned invalid format. Try a longer transcript." });
     }
 
-    const notes = JSON.parse(toolCall.function.arguments);
-
+    // Update DB
     const { error: updateError } = await supabase
       .from("meetings")
       .update({
@@ -172,18 +112,13 @@ Be thorough but concise. If owners aren't clear, use "Unassigned".`,
       .eq("id", meetingId);
 
     if (updateError) {
-      console.error("DB Update Error Detail:", updateError);
-      throw new Error(`Database save failed: ${updateError.message}`);
+      console.error("DB Update Error:", updateError);
+      return res.status(500).json({ error: `Failed to save to database: ${updateError.message}` });
     }
 
-    return new Response(JSON.stringify({ success: true, notes }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Final catch error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal Server Error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return res.status(200).json({ success: true, notes });
+  } catch (error: any) {
+    console.error("Global Catch:", error);
+    return res.status(500).json({ error: error.message || "Unknown server error" });
   }
 }

@@ -138,8 +138,10 @@ export function useCreateMeeting() {
       });
 
       if (!response.ok) {
-        toast.error("AI processing failed. Please try again.");
-        throw new Error(`Migration error: ${response.status}`);
+        const errorData = await response.json();
+        const msg = errorData.error || `Error ${response.status}`;
+        toast.error(`AI Processing Failed: ${msg}`);
+        throw new Error(msg);
       }
 
       return meeting;
