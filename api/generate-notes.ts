@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { mistral } from "@ai-sdk/mistral";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -25,17 +25,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    // We are switching to Groq (via Vercel AI SDK) for 100% regional stability
-    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    // Final solution for regional stability: Mistral (Standard global provider)
+    const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 
-    if (!supabaseUrl || !GROQ_API_KEY || !supabaseKey) {
-      return res.status(500).json({ error: "Backend config missing (GROQ_API_KEY)." });
+    if (!supabaseUrl || !MISTRAL_API_KEY || !supabaseKey) {
+      return res.status(500).json({ error: "Backend config missing (MISTRAL_API_KEY)." });
     }
-
-    const groq = createOpenAI({
-      baseURL: "https://api.groq.com/openai/v1",
-      apiKey: GROQ_API_KEY,
-    });
 
     const supabase = createClient(supabaseUrl as string, supabaseKey as string);
     const { data: { user }, error: authError } = await createClient(supabaseUrl as string, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
@@ -44,9 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Using Llama 3 on Groq - It's 10x faster and available everywhere
+    // Mistral is highly stable in India and worldwide
     const { object: notes } = await generateObject({
-      model: groq("llama-3.3-70b-versatile"), // Powerful Llama 3 model
+      model: mistral("mistral-small-latest"),
+      apiKey: MISTRAL_API_KEY,
       schema: z.object({
         summary: z.string(),
         suggestedTitle: z.string(),
@@ -66,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           speakerCount: z.number()
         })
       }),
-      prompt: `Analyze this meeting transcript and return structured insights: ${transcript}`,
+      prompt: `Analyze this meeting transcript and extract structured highlights: ${transcript}`,
     });
 
     const { error: updateError } = await supabase
