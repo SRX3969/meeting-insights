@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -24,11 +24,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const authHeader = req.headers.authorization;
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    
+    // The Vercel AI SDK looks for GOOGLE_GENERATIVE_AI_API_KEY
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
-    if (!supabaseUrl || !GEMINI_API_KEY || !supabaseKey) {
-      return res.status(500).json({ error: "Backend config missing (GEMINI_API_KEY)." });
+    if (!supabaseUrl || !apiKey || !supabaseKey) {
+      return res.status(500).json({ error: "Backend config missing (GOOGLE_GENERATIVE_AI_API_KEY)." });
     }
+
+    const google = createGoogleGenerativeAI({
+      apiKey: apiKey,
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { data: { user }, error: authError } = await createClient(supabaseUrl, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
@@ -40,7 +46,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Use Vercel AI SDK with Google Gemini
     const { object: notes } = await generateObject({
       model: google("gemini-1.5-flash"),
-      apiKey: GEMINI_API_KEY,
       schema: z.object({
         summary: z.string().describe("A 3-5 sentence summary of the meeting"),
         suggestedTitle: z.string().describe("A short, catchy title"),
