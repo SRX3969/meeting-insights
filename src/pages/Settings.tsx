@@ -47,7 +47,6 @@ const Settings = () => {
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
-  const [avatarEmoji, setAvatarEmoji] = useState("🧠");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -55,7 +54,6 @@ const Settings = () => {
     if (profile) {
       setFullName(profile.full_name || "");
       setUsername(profile.username || "");
-      setAvatarEmoji(profile.avatar_emoji || "🧠");
     }
   }, [profile]);
 
@@ -63,7 +61,6 @@ const Settings = () => {
     updateProfile.mutate({
       full_name: fullName,
       username: username || null,
-      avatar_emoji: avatarEmoji,
     });
   };
 
@@ -129,25 +126,6 @@ const Settings = () => {
 
         {/* Profile */}
         <TabsContent value="profile" className="space-y-6">
-          <div className="notion-card space-y-5">
-            <h3 className="text-base font-semibold text-foreground">Avatar</h3>
-            <div className="flex flex-wrap gap-2">
-              {EMOJI_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => setAvatarEmoji(emoji)}
-                  className={`h-10 w-10 rounded-xl text-xl flex items-center justify-center transition-all ${
-                    avatarEmoji === emoji
-                      ? "bg-primary/10 ring-2 ring-primary scale-110"
-                      : "bg-secondary hover:bg-accent"
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="notion-card space-y-4">
             <div className="space-y-2">
               <Label>Full Name</Label>

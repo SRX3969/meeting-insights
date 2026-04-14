@@ -10,7 +10,6 @@ export interface Profile {
   username: string | null;
   date_of_birth: string | null;
   heard_from: string | null;
-  avatar_emoji: string;
   avatar_url: string | null;
   theme: string;
   accent_color: string;

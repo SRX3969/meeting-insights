@@ -63,7 +63,7 @@ const Dashboard = () => {
     }
   }, [transcript, createMeeting, navigate]);
 
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
+  const firstName = profile?.username || profile?.full_name?.trim().split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
   const greeting = getGreeting(firstName);
 
   // Stats

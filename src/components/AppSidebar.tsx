@@ -114,14 +114,16 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2.5 rounded-xl px-2 py-2 w-full hover:bg-accent transition-colors">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                  {profile?.avatar_emoji || "🧠"}
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                  {(profile?.username || profile?.full_name || user?.email || "U")
+                    .charAt(0)
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               {!collapsed && (
                 <div className="flex-1 text-left min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {profile?.full_name || user?.email?.split("@")[0]}
+                    {profile?.username || profile?.full_name || user?.email?.split("@")[0]}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
