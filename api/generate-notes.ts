@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Standard Vercel Serverless Function (Node.js) instead of Edge
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', "true");
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -19,86 +17,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { meetingId, transcript } = req.body;
-    
-    if (!transcript || !meetingId) {
-      return res.status(400).json({ error: "meetingId and transcript are required" });
-    }
-
     const authHeader = req.headers.authorization;
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    if (!supabaseUrl || !anonKey || !OPENAI_API_KEY || !supabaseKey) {
-      console.error("Missing Env variables:", { 
-        url: !!supabaseUrl, 
-        anon: !!anonKey, 
-        openai: !!OPENAI_API_KEY, 
-        service: !!supabaseKey 
-      });
-      return res.status(500).json({ error: "Backend configuration missing. Ensure SUPABASE_SERVICE_ROLE_KEY and OPENAI_API_KEY are in Vercel." });
+    if (!supabaseUrl || !GEMINI_API_KEY || !supabaseKey) {
+      return res.status(500).json({ error: "Missing Gemini API Key in Vercel settings." });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const anonClient = createClient(supabaseUrl, anonKey, {
+    const { data: { user }, error: authError } = await createClient(supabaseUrl, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
       global: { headers: { Authorization: authHeader } },
-    });
+    }).auth.getUser();
 
-    // Verify User
-    const { data: { user }, error: authError } = await anonClient.auth.getUser();
-    if (authError || !user) {
-      return res.status(401).json({ error: "Unauthorized access" });
+    if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
+
+    // Call Gemini API (Free tier)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const prompt = `Analyze this meeting transcript and return a JSON object.
+    
+    Transcript:
+    ${transcript}
+    
+    JSON Template:
+    {
+      "summary": "3-5 sentences",
+      "suggestedTitle": "Short title",
+      "actionItems": ["item1", "item2"],
+      "decisions": ["dec1"],
+      "keyPoints": ["point1"],
+      "tasks": [{"task": "description", "owner": "name", "priority": "high|medium|low"}],
+      "sentiment": "positive|neutral|negative",
+      "productivityScore": 85,
+      "participationInsights": {"mostActive": "name", "engagementLevel": "high|medium|low", "speakerCount": 3}
     }
+    
+    Return ONLY pure JSON. No markdown. No text before or after.`;
 
-    // Call OpenAI
-    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a meeting notes assistant. Extract structured insights from the transcript. 
-            Return JSON with: summary, suggestedTitle, actionItems (array), decisions (array), keyPoints (array), 
-            tasks (array of {task, owner, priority}), sentiment, productivityScore (0-100), participationInsights ({mostActive, engagementLevel, speakerCount}).`
-          },
-          { role: "user", content: transcript }
-        ]
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("OpenAI error:", aiResponse.status, errText);
-      return res.status(500).json({ error: `OpenAI Error: ${aiResponse.status} - ${errText}` });
+    if (!response.ok) {
+      const err = await response.text();
+      return res.status(500).json({ error: `Gemini Error: ${err}` });
     }
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
-    
-    // Fallback if it's not JSON
-    let notes;
-    try {
-      // Handle potential markdown wrapping
-      const jsonStr = content.includes('```json') 
-        ? content.split('```json')[1].split('```')[0] 
-        : content;
-      notes = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error("Failed to parse AI response:", content);
-      return res.status(500).json({ error: "AI returned invalid format. Try a longer transcript." });
-    }
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const notes = JSON.parse(content);
 
-    // Update DB
     const { error: updateError } = await supabase
       .from("meetings")
       .update({
-        title: notes.suggestedTitle || "Untitled Meeting",
+        title: notes.suggestedTitle,
         summary: notes.summary,
         action_items: notes.actionItems,
         decisions: notes.decisions,
@@ -111,14 +90,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .eq("id", meetingId);
 
-    if (updateError) {
-      console.error("DB Update Error:", updateError);
-      return res.status(500).json({ error: `Failed to save to database: ${updateError.message}` });
-    }
+    if (updateError) throw updateError;
 
     return res.status(200).json({ success: true, notes });
   } catch (error: any) {
-    console.error("Global Catch:", error);
-    return res.status(500).json({ error: error.message || "Unknown server error" });
+    return res.status(500).json({ error: error.message });
   }
 }
