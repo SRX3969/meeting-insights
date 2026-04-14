@@ -127,19 +127,25 @@ export function useCreateMeeting() {
       if (insertError) throw insertError;
 
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Your session has expired. Please log in again.");
+        throw new Error("No session");
+      }
       
+      console.log("Starting AI generation for meeting:", meeting.id);
       const response = await fetch("/api/generate-notes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token || ""}`,
+          "Authorization": `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ meetingId: meeting.id, transcript }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         const msg = errorData.error || `Error ${response.status}`;
+        console.error("AI Generation Failed:", msg);
         toast.error(`AI Processing Failed: ${msg}`);
         throw new Error(msg);
       }
