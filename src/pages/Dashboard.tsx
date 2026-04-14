@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, Sparkles, Mic, History, CheckCircle2, TrendingUp, Users, ArrowRight, Zap, Shield } from "lucide-react";
+import { Brain, Sparkles, Mic, History as HistoryIcon, CheckCircle2, TrendingUp, Users, ArrowRight, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useMeetings } from "@/hooks/useMeetings";
@@ -7,11 +7,13 @@ import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { data: profile } = useProfile();
   const { createMeeting, isCreating } = useMeetings();
   const [transcript, setTranscript] = useState("");
+  const navigate = useNavigate();
 
   const handleGenerate = async () => {
     if (!transcript.trim() || transcript.length < 5) {
@@ -20,12 +22,14 @@ const Dashboard = () => {
     }
 
     try {
-      await createMeeting.mutateAsync({
+      const meeting = await createMeeting.mutateAsync({
         transcript,
         title: "New Meeting Analysis",
         date: new Date().toISOString(),
       });
       setTranscript("");
+      // Automatically navigate to the detail page where the user can see it processing
+      navigate(`/dashboard/meeting/${meeting.id}`);
     } catch (error: any) {
       // Error handled in hook
     }
@@ -147,7 +151,7 @@ const Dashboard = () => {
             <Card className="rounded-[2.5rem] border-black/5 shadow-xl bg-white/60 backdrop-blur-md">
                <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
                   <CardTitle className="text-lg font-black tracking-tight text-[#0A0A0A]">Recent Brain Syncs</CardTitle>
-                  <History className="h-4 w-4 text-muted-foreground/40" />
+                  <HistoryIcon className="h-4 w-4 text-muted-foreground/40" />
                </CardHeader>
                <CardContent className="p-8 pt-2 space-y-6">
                   {[
