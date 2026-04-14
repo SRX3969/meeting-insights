@@ -41,9 +41,7 @@ const App = () => (
               <Route path="/auth/login" element={<Auth mode="login" />} />
               <Route path="/auth/signup" element={<Auth mode="signup" />} />
 
-              {/* ISOLATION TEST: Render Dashboard directly for a moment to see if it fixes the blank page */}
-              <Route path="/dashboard" element={<Dashboard />} />
-              
+              <Route path="/dashboard" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
               <Route path="/dashboard/meetings" element={<ProtectedPage><Meetings /></ProtectedPage>} />
               <Route path="/dashboard/meetings/new" element={<ProtectedPage><NewMeeting /></ProtectedPage>} />
               <Route path="/dashboard/meeting/:id" element={<ProtectedPage><DashboardMeetingDetail /></ProtectedPage>} />
