@@ -113,8 +113,8 @@ serve(async (req) => {
 
     if (GOOGLE_API_KEY) {
       try {
-        console.log("Calling Gemini 2.0 Flash AI...");
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`, {
+        console.log(`Calling Gemini AI (gemini-1.5-pro) for meeting: ${meetingId}`);
+        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GOOGLE_API_KEY}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -122,42 +122,54 @@ serve(async (req) => {
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `You are a Senior Project Manager and intelligent meeting analysis assistant. 
-Analyze the meeting transcript provided and return a JSON object with the following structure:
+                text: `You are an elite Senior Project Manager and Meeting Strategist. 
+Your goal is to transform the provided transcript into a high-signal, executive-grade JSON report.
 
+### 🎯 ANALYSIS PHILOSOPHY
+- **Ownership over description:** Don't just list tasks; map them to people. 
+- **Accountability:** Every action item MUST start with the assignee's name. (e.g. "Rahul to finalize the API docs").
+- **Precision:** Use concrete metrics and deadlines if mentioned. Use "Unassigned" only as a last resort.
+
+### 📊 OUTPUT SCHEMA
 {
-  "title": "string - a short meaningful title for the meeting",
-  "sentiment": "Positive | Negative | Neutral | Mixed",
+  "title": "A sharp, professional title",
+  "sentiment": "Positive | Negative | Neutral | Mixed (based on tone)",
   "productivity": 0,
-  "summary": "2-3 sentence summary detailing exactly WHAT was decided and WHO committed to major milestones. No generic templates.",
-  "action_items": ["Name to [do something]"],
-  "decisions": ["string"],
+  "summary": "A 2-3 sentence executive summary focus on outcomes, not the play-by-play.",
+  "action_items": ["Name to [do something] — REQUIRED format"],
+  "decisions": ["Final, confirmed outcomes only"],
   "tasks": [
     {
-      "task": "string - specific task description",
-      "assignee": "string - exact name of the person assigned",
+      "task": "Specific task description",
+      "assignee": "Person's name",
       "priority": "high | medium | low"
     }
   ],
   "speakers": [
     {
-      "name": "string - speaker name",
-      "tasks_assigned": ["string - list of tasks assigned to this person"],
+      "name": "Speaker name",
+      "tasks_assigned": ["List of tasks"],
       "sentiment": "Positive | Negative | Neutral"
     }
   ]
 }
 
-Rules:
-1. SENTIMENT: Positive, Negative, Neutral, Mixed.
-2. PRODUCTIVITY: Start at 50, +10 if decisions made, +10 if tasks assigned with owners, +10 if deadlines mentioned, +10 if a clear agenda was followed.
-3. OWNERSHIP (CRITICAL): Every "action_item" string MUST start with the assignee's name (e.g. "Rahul to fix..."). 
+### ⚖️ PRODUCTIVITY SCORING RULES
+- Base score: 50.
+- +10: Clear consensus/decisions reached.
+- +10: Every major task assigned to a specific owner.
+- +10: Explicit deadlines or timelines mentioned.
+- +10: Factual, no-fluff dialogue.
+- +10: No open-ended loop left unaddressed.
 
-Transcript below:
+Transcript:
 ${transcript}`
               }]
             }],
             generationConfig: {
+              temperature: 0.2,
+              topP: 0.8,
+              topK: 40,
               response_mime_type: "application/json",
             }
           }),
@@ -166,7 +178,11 @@ ${transcript}`
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
           const content: string = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          console.log("Gemini raw response received.");
+          console.log("Gemini response content length:", content.length);
+
+          if (!content) {
+            throw new Error("Gemini returned empty candidate text");
+          }
 
           const parsed = JSON.parse(content);
 
