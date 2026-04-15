@@ -113,30 +113,16 @@ export function useMeeting(id: string | undefined) {
   });
 }
 
-export function useCreateMeeting() {
+export function useGenerateNotes() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ title, transcript }: { title: string; transcript: string }) => {
-      // 1. Create the initial meeting record
-      const { data: meeting, error: insertError } = await supabase
-        .from("meetings")
-        .insert({ user_id: user!.id, title: title || "New Sync", transcript, status: "processing" })
-        .select()
-        .single();
-      
-      if (insertError) {
-        toast.error("Failed to create meeting record");
-        throw insertError;
-      }
-
-      // 2. Attempt AI Generation
+    mutationFn: async ({ meetingId, transcript }: { meetingId: string; transcript: string }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("No active session");
 
-        console.log("Syncing with AI Intelligence...");
+        console.log("Syncing with Gemini 2.0 Flash...");
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-notes`, {
           method: "POST",
           headers: {
@@ -144,18 +130,19 @@ export function useCreateMeeting() {
             "Authorization": `Bearer ${session.access_token}`,
             "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ meetingId: meeting.id, transcript }),
+          body: JSON.stringify({ meetingId, transcript }),
         });
 
         if (!response.ok) {
           throw new Error(`AI Offline: ${response.status}`);
         }
         
-        console.log("Cloud AI Sync Successful");
+        console.log("Gemini 2.0 Sync Successful");
+        toast.success("Intelligence updated with Gemini 2.0 Flash");
       } catch (err) {
         console.warn("Cloud AI failed, switching to Local Intelligence Engine:", err);
         
-        // 3. Robust Fallback to Mock Data
+        // Robust Fallback to Mock Data
         try {
           const { generateMockNotes } = await import("@/lib/meetings-store");
           const mock = generateMockNotes(transcript);
@@ -173,19 +160,44 @@ export function useCreateMeeting() {
               sentiment: "positive",
               productivity_score: 95
             })
-            .eq("id", meeting.id);
+            .eq("id", meetingId);
 
-          if (updateError) {
-            console.error("Local sync update failed:", updateError);
-            toast.error("Local sync failed to save");
-          } else {
-            toast.info("Processing complete (Local Intelligence Sync enabled)");
-          }
+          if (updateError) throw updateError;
+          toast.info("Local Intelligence Sync enabled");
         } catch (fallbackErr) {
           console.error("Fatal error in fallback logic:", fallbackErr);
-          toast.error("Deep Intelligence Engine failure");
+          throw new Error("Deep Intelligence Engine failure");
         }
       }
+    },
+    onSuccess: (_, { meetingId }) => {
+      queryClient.invalidateQueries({ queryKey: ["meeting", meetingId] });
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    },
+  });
+}
+
+export function useCreateMeeting() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const generateNotes = useGenerateNotes();
+
+  return useMutation({
+    mutationFn: async ({ title, transcript }: { title: string; transcript: string }) => {
+      // 1. Create the initial meeting record
+      const { data: meeting, error: insertError } = await supabase
+        .from("meetings")
+        .insert({ user_id: user!.id, title: title || "New Sync", transcript, status: "processing" })
+        .select()
+        .single();
+      
+      if (insertError) {
+        toast.error("Failed to create meeting record");
+        throw insertError;
+      }
+
+      // 2. Trigger AI Generation
+      generateNotes.mutate({ meetingId: meeting.id, transcript });
 
       return meeting;
     },

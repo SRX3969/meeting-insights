@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
+import { useMeeting, useDeleteMeeting, useGenerateNotes } from "@/hooks/useMeetings";
 import { OutputTabs } from "@/components/OutputTabs";
-import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users } from "lucide-react";
+import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingNotes } from "@/lib/types";
 import { toast } from "sonner";
@@ -10,12 +10,18 @@ const DashboardMeetingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: meeting, isLoading, refetch } = useMeeting(id);
   const deleteMeeting = useDeleteMeeting();
+  const generateNotes = useGenerateNotes();
   const navigate = useNavigate();
 
   const handleDelete = async () => {
     if (!id || !confirm("Delete this meeting?")) return;
     await deleteMeeting.mutateAsync(id);
     navigate("/dashboard");
+  };
+
+  const handleRegenerate = () => {
+    if (!meeting) return;
+    generateNotes.mutate({ meetingId: meeting.id, transcript: meeting.transcript });
   };
 
   const handleCopyNotes = () => {
@@ -151,6 +157,16 @@ const DashboardMeetingDetail = () => {
             )}
             {notes && (
               <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRegenerate} 
+                  disabled={generateNotes.isPending}
+                  className="rounded-xl gap-2 text-indigo-600 border-indigo-200 bg-indigo-50/30 hover:bg-indigo-50 hover:border-indigo-300"
+                >
+                  <Sparkles className={`h-4 w-4 ${generateNotes.isPending ? 'animate-pulse' : ''}`} />
+                  {generateNotes.isPending ? "Syncing..." : "Regenerate AI"}
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleCopyNotes} className="rounded-xl">
                   <Copy className="h-4 w-4" />
                 </Button>
