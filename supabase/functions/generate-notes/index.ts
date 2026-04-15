@@ -107,25 +107,22 @@ serve(async (req) => {
       .eq("id", meetingId)
       .eq("user_id", user.id);
 
-    // ── Attempt Mistral AI ──────────────────────────────────────────────────
+    // ── Attempt Gemini 2.0 Flash AI ───────────────────────────────────────────
     let notes = null;
-    const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY");
+    const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 
-    if (MISTRAL_API_KEY) {
+    if (GOOGLE_API_KEY) {
       try {
-        console.log("Calling Mistral AI...");
-        const aiResponse = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        console.log("Calling Gemini 2.0 Flash AI...");
+        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${MISTRAL_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "mistral-large-latest",
-            messages: [
-                {
-                  role: "system",
- content: `You are a Senior Project Manager and intelligent meeting analysis assistant. 
+            contents: [{
+              parts: [{
+                text: `You are a Senior Project Manager and intelligent meeting analysis assistant. 
 Analyze the meeting transcript provided and return a JSON object with the following structure:
 
 {
@@ -152,32 +149,26 @@ Analyze the meeting transcript provided and return a JSON object with the follow
 }
 
 Rules:
-1. SENTIMENT must reflect actual tone: Positive (collaborative), Negative (conflict), Neutral, Mixed.
-2. PRODUCTIVITY score: Start at 50, +10 if decisions made, +10 if tasks assigned with owners, +10 if deadlines mentioned, +10 if a clear agenda was followed.
+1. SENTIMENT: Positive, Negative, Neutral, Mixed.
+2. PRODUCTIVITY: Start at 50, +10 if decisions made, +10 if tasks assigned with owners, +10 if deadlines mentioned, +10 if a clear agenda was followed.
 3. OWNERSHIP (CRITICAL): Every "action_item" string MUST start with the assignee's name (e.g. "Rahul to fix..."). 
-If a name is not explicitly mentioned but can be inferred from context, use that name. If truly unknown, use "Team" or "Unassigned".`,
 
-                },
-              {
-                role: "user",
-                content: `Here is the meeting transcript:\n\n${transcript}`,
-              },
-            ],
-            temperature: 0.3,
-            max_tokens: 1500,
-            response_format: { type: "json_object" },
+Transcript below:
+${transcript}`
+              }]
+            }],
+            generationConfig: {
+              response_mime_type: "application/json",
+            }
           }),
         });
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
-          const content: string = aiData.choices?.[0]?.message?.content ?? "";
-          console.log("Mistral raw response received.");
+          const content: string = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          console.log("Gemini raw response received.");
 
-          // Extract JSON block in case there's surrounding text
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          const cleaned = jsonMatch ? jsonMatch[0] : content;
-          const parsed = JSON.parse(cleaned);
+          const parsed = JSON.parse(content);
 
           if (parsed.summary && parsed.action_items) {
             notes = {
@@ -200,19 +191,19 @@ If a name is not explicitly mentioned but can be inferred from context, use that
                 speakers: parsed.speakers || []
               }
             };
-            console.log("Mistral AI parsing successful.");
+            console.log("Gemini AI parsing successful.");
           } else {
-            console.warn("Mistral response missing required fields, falling back.");
+            console.warn("Gemini response missing required fields, falling back.");
           }
         } else {
           const errText = await aiResponse.text();
-          console.warn(`Mistral returned ${aiResponse.status}: ${errText} — using fallback.`);
+          console.warn(`Gemini returned ${aiResponse.status}: ${errText} — using fallback.`);
         }
       } catch (aiErr) {
-        console.warn("Mistral AI call failed:", aiErr, "— using local fallback.");
+        console.warn("Gemini AI call failed:", aiErr, "— using local fallback.");
       }
     } else {
-      console.warn("MISTRAL_API_KEY not found in environment — using local fallback.");
+      console.warn("GOOGLE_API_KEY not found in environment — using local fallback.");
     }
     // ───────────────────────────────────────────────────────────────────────
 

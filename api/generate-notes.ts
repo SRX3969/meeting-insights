@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
 import { createMistral } from "@ai-sdk/mistral";
+import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -25,11 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    // Final solution for regional stability: Mistral (Standard global provider)
-    const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+    // Switch to Gemini 2.0 Flash as requested
+    const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    if (!supabaseUrl || !MISTRAL_API_KEY || !supabaseKey) {
-      return res.status(500).json({ error: "Backend config missing (MISTRAL_API_KEY)." });
+    if (!supabaseUrl || !GOOGLE_API_KEY || !supabaseKey) {
+      return res.status(500).json({ error: "Backend config missing (GOOGLE_GENERATIVE_AI_API_KEY)." });
     }
 
     const supabase = createClient(supabaseUrl as string, supabaseKey as string);
@@ -39,14 +40,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Create Mistral provider explicitly
-    const mistral = createMistral({
-      apiKey: MISTRAL_API_KEY,
+    // Create Google provider explicitly
+    const google = createGoogle({
+      apiKey: GOOGLE_API_KEY,
     });
 
-    // Mistral is highly stable in India and worldwide
+    // Using Gemini 2.0 Flash for superior performance and ownership detection
     const { object: notes } = await generateObject({
-      model: mistral("mistral-small-latest"),
+      model: google("gemini-2.0-flash"), 
       schema: z.object({
         title: z.string(),
         sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
