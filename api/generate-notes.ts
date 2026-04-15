@@ -44,9 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey: GOOGLE_API_KEY,
     });
 
-    // Using Gemini 1.5 Pro for elite reasoning and ownership tracking
+    // Using Gemini 1.5 Flash for speed and stability (avoiding Vercel 10s timeouts)
     const { object: notes } = await generateObject({
-      model: google("gemini-1.5-pro"), 
+      model: google("gemini-1.5-flash"), 
       schema: z.object({
         title: z.string(),
         sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
@@ -110,6 +110,11 @@ Transcript: ${transcript}`,
     return res.status(200).json({ success: true, notes });
   } catch (error: any) {
     console.error("AI Error:", error);
-    return res.status(500).json({ error: error.message });
+    // Return a clearer error for debugging
+    return res.status(500).json({ 
+      error: error.message || "Internal AI Error",
+      details: error.stack?.split('\n')[0],
+      type: "AI_GENERATION_FAILED"
+    });
   }
 }

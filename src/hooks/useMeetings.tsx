@@ -133,15 +133,17 @@ export function useGenerateNotes() {
         });
 
         if (!response.ok) {
-          throw new Error(`AI Offline: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `AI Offline: ${response.status}`);
         }
         
-        console.log("Gemini 2.0 Sync Successful");
-        toast.success("Intelligence updated with Gemini 2.0 Flash");
-      } catch (err) {
-        console.warn("Cloud AI failed, switching to Local Intelligence Engine:", err);
+        console.log("Gemini Sync Successful");
+        toast.success("AI Intelligence updated successfully");
+      } catch (err: any) {
+        console.warn("Cloud AI failed:", err);
+        toast.error(`Cloud AI Error: ${err.message}`);
         
-        // Robust Fallback to Mock Data
+        // Robust Fallback as a safety net
         try {
           const { generateMockNotes } = await import("@/lib/meetings-store");
           const mock = generateMockNotes(transcript);
