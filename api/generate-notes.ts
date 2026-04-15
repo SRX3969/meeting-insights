@@ -45,14 +45,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey: GOOGLE_API_KEY,
     });
 
-    // Using Gemini 2.0 Flash for superior performance and ownership detection
+    // Using Gemini 1.5 Pro for elite reasoning and ownership tracking
     const { object: notes } = await generateObject({
-      model: google("gemini-2.0-flash"), 
+      model: google("gemini-1.5-pro"), 
       schema: z.object({
         title: z.string(),
         sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
-        productivity: z.number().int().describe("Calculate based on rules: Start at 50, +10 for clear decisions, +10 if tasks assigned, +10 for deadlines, +10 for clear agenda"),
-        summary: z.string().describe("2-3 sentence summary based on ACTUAL conversation. No generic templates."),
+        productivity: z.number().int().describe("Scoring: 50 base, +10 for decisions, +10 for tasks with owners, +10 for deadlines, +10 for clarity."),
+        summary: z.string().describe("A 2-3 sentence executive-grade narrative focused on outcomes."),
         action_items: z.array(z.string()),
         decisions: z.array(z.string()),
         tasks: z.array(z.object({
@@ -66,18 +66,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sentiment: z.enum(["Positive", "Negative", "Neutral"])
         }))
       }),
-      prompt: `You are a Senior Project Manager and AI Meeting Analyst. 
-Analyze the meeting transcript provided and extract structured insights with a focus on **OWNERSHIP and ACCOUNTABILITY**.
+      prompt: `You are an ELITE Senior Project Manager and AI Meeting Strategist. 
+Your goal is to transform the provided transcript into a high-signal, executive-grade JSON report.
 
-### 🎯 GOAL
-- Identify EXACTLY who is doing what.
-- For every action item: If no specific name is mentioned but can be inferred from context, use that name. If it's truly unknown, use "Team" or "Unassigned".
-- **FORMAT RULE:** Every string in the "action_items" array MUST start with the assignee's name (e.g., "Rahul to fix security issue..."). 
+### 🎯 ANALYSIS PHILOSOPHY
+- **Ownership over description:** Don't just list tasks; map them to people. 
+- **Accountability:** Every action item MUST start with the assignee's name. (e.g. "Rahul to finalize the API docs").
+- **Precision:** Use concrete metrics and deadlines if mentioned. Use "Unassigned" only as a last resort.
 
-Rules:
-1. SENTIMENT: Reflect tone (Positive, Negative, Neutral, Mixed).
-2. PRODUCTIVITY: Start at 50, +10 if decisions made, +10 if tasks assigned with clear owners, +10 if deadlines mentioned, +10 if clear agenda was followed.
-3. SUMMARY: 2-3 sentence narrative summary. Mention the key decision-makers and their primary commitments.
+### ⚖️ PRODUCTIVITY SCORING RULES
+- Base score: 50.
+- +10: Clear consensus/decisions reached.
+- +10: Every major task assigned to a specific owner.
+- +10: Explicit deadlines or timelines mentioned.
+- +10: Factual, no-fluff dialogue.
+- +10: No open-ended loop left unaddressed.
 
 Transcript: ${transcript}`,
     });

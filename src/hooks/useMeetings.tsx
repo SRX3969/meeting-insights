@@ -122,13 +122,12 @@ export function useGenerateNotes() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("No active session");
 
-        console.log("Syncing with Gemini 2.0 Flash...");
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-notes`, {
+        console.log("Syncing with Gemini 1.5 Pro through Vercel API...");
+        const response = await fetch("/api/generate-notes", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${session.access_token}`,
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ meetingId, transcript }),
         });
