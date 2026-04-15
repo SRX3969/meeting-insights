@@ -223,7 +223,7 @@ ${transcript}`
     }
     // ───────────────────────────────────────────────────────────────────────
 
-    // Always fall back to local intelligence when Mistral is unavailable
+    // Always fall back to local intelligence when Gemini is unavailable
     if (!notes) {
       console.log("Using Local Intelligence Engine.");
       notes = buildFallbackNotes(transcript);

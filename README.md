@@ -18,7 +18,7 @@ Export & Share — Download notes as Markdown or copy to clipboard
 Frontend: React 18, Vite 5, TypeScript 5
 Styling: Tailwind CSS v3, shadcn/ui, Recharts
 Backend: Supabase (Database, Auth, Edge Functions)
-AI: Mistral Large (via Supabase Edge Functions)
+AI: Gemini 1.5 Pro (via Vercel API Serverless Functions)
 Auth: Email/password + Google OAuth
 Validation: Zod
 

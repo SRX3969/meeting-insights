@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
-import { createMistral } from "@ai-sdk/mistral";
 import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 
