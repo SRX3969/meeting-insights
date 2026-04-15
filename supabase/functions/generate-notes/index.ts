@@ -57,6 +57,11 @@ function buildFallbackNotes(transcript: string) {
       mostActive: mainSpeaker,
       engagementLevel: "high",
       speakerCount: Math.max(speakers.length, 2),
+      speakers: speakers.map(s => ({
+        name: s,
+        tasks_assigned: [`Update ${s} documentation`],
+        sentiment: "Positive"
+      }))
     },
   };
 }
@@ -120,67 +125,44 @@ serve(async (req) => {
             messages: [
                 {
                   role: "system",
-                  content: `You are an AI assistant inside a professional productivity tool called NoteMind.
-Your job is to convert raw meeting transcripts into high-quality, structured, and actionable outputs suitable for real-world execution.
+                  content: `You are an intelligent meeting analysis assistant. Analyze the meeting transcript provided and return a JSON object with the following structure:
 
-This is NOT a chatbot. You must behave like a senior project manager and analyst.
+{
+  "title": "string - a short meaningful title for the meeting",
+  "sentiment": "Positive | Negative | Neutral | Mixed",
+  "productivity": 0,
+  "summary": "string - a specific 2-3 sentence summary based on the ACTUAL conversation content. Never use a generic template.",
+  "action_items": ["string"],
+  "decisions": ["string"],
+  "tasks": [
+    {
+      "task": "string - specific task description",
+      "assignee": "string - exact name of the person assigned",
+      "priority": "high | medium | low"
+    }
+  ],
+  "speakers": [
+    {
+      "name": "string - speaker name",
+      "tasks_assigned": ["string - list of tasks assigned to this person"],
+      "sentiment": "Positive | Negative | Neutral"
+    }
+  ]
+}
 
----
+Rules:
+1. SENTIMENT must reflect the actual tone of the conversation:
+   - Positive: collaborative, agreeable, productive tone
+   - Negative: conflict, blame, frustration, burnout
+   - Neutral: factual, no strong emotions
+   - Mixed: combination of positive and negative
 
-## 🎯 OBJECTIVE
-Transform the given transcript into a raw JSON object representing:
-1. Clear summary
-2. Structured action items
-3. Concrete decisions
-4. Task-ready outputs
-
-The output must be Precise, Actionable, Cleanly formatted, and Ready for immediate use in a task management system.
-
----
-
-## ⚠️ STRICT RULES (VERY IMPORTANT)
-* Do NOT guess missing information
-* If a person is not mentioned → use "Unassigned"
-* If a deadline is not mentioned → use "Not specified"
-* Do NOT include vague tasks (e.g., "handle this", "look into it")
-* Do NOT include discussions as decisions
-* Only include final confirmed decisions
-* Avoid fluff, filler, or meta commentary
-* Do NOT mention transcript length or analysis process
-
----
-
-## 🧠 THINKING BEHAVIOR (IMPORTANT)
-Before answering:
-* Identify key responsibilities
-* Detect ownership (who is doing what)
-* Detect deadlines (explicit or implied)
-* Distinguish between discussion vs action, suggestion vs decision
-
----
-
-## 🧠 OUTPUT FORMAT (STRICT — FOLLOW EXACTLY)
-You MUST return ONLY a raw JSON object (no markdown, no code fences). It must strictly match these keys:
-
-1. "summary": A multi-line string with 4-6 bullet points. Focus on outcomes, not conversation. No generic statements.
-2. "suggestedTitle": A sharp, professional title.
-3. "actionItems": An array of strings. Each item must follow EXACT format: "[Clear, specific task] — Assigned to: [Person or Unassigned] — Due: [Date or Not specified]". Combine fragmented sentences into clear actions.
-4. "decisions": An array of strings. Numbered list format (e.g. "1. [Final decision]"). Only include confirmed outcomes, no suggestions.
-5. "keyPoints": An array of strings (top takeaways).
-6. "tasks": An array of objects. Convert ALL action items into structured tasks. Each object must have:
-   - "task": string ([Clear task])
-   - "owner": string ([Person])
-   - "priority": "high" | "medium" | "low" (High=urgent/critical, Medium=standard, Low=optional).
-7. "sentiment": "positive" | "neutral" | "negative".
-8. "productivityScore": 0-100 integer.
-9. "participationInsights": object { "mostActive": string, "engagementLevel": "high"|"medium"|"low", "speakerCount": integer }.
-
----
-
-## 🎯 QUALITY BAR (CRITICAL)
-Your output must feel like it was created by a senior product manager / project coordinator for a startup-grade productivity tool. It should NOT feel AI-generated.
-
-Avoid: Missing fields, unstructured output, generic summaries, or tasks not linked to action items.`,
+2. PRODUCTIVITY score must be calculated dynamically:
+   - Start at 50
+   - +10 if clear decisions were made
+   - +10 if tasks were assigned with owners
+   - +10 if deadlines were mentioned
+   - +10 if meeting had a clear agenda`,
                 },
               {
                 role: "user",
@@ -203,8 +185,27 @@ Avoid: Missing fields, unstructured output, generic summaries, or tasks not link
           const cleaned = jsonMatch ? jsonMatch[0] : content;
           const parsed = JSON.parse(cleaned);
 
-          if (parsed.summary && parsed.actionItems) {
-            notes = parsed;
+          if (parsed.summary && parsed.action_items) {
+            notes = {
+              suggestedTitle: parsed.title,
+              summary: parsed.summary,
+              actionItems: parsed.action_items || [],
+              decisions: parsed.decisions || [],
+              keyPoints: [],
+              tasks: (parsed.tasks || []).map((t: any) => ({
+                task: t.task,
+                owner: t.assignee,
+                priority: t.priority
+              })),
+              sentiment: parsed.sentiment?.toLowerCase() || "neutral",
+              productivityScore: parsed.productivity || 50,
+              participationInsights: {
+                speakerCount: parsed.speakers?.length || 1,
+                mostActive: parsed.speakers?.[0]?.name || "Unknown",
+                engagementLevel: "high",
+                speakers: parsed.speakers || []
+              }
+            };
             console.log("Mistral AI parsing successful.");
           } else {
             console.warn("Mistral response missing required fields, falling back.");

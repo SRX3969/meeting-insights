@@ -117,6 +117,7 @@ const DashboardMeetingDetail = () => {
             owner: t.owner,
             priority: t.priority as "high" | "medium" | "low",
           })),
+          speakers: (meeting.participation_insights as any)?.speakers || [],
         }
       : null;
 

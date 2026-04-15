@@ -9,6 +9,11 @@ export interface MeetingNotes {
   actionItems: string[];
   decisions: string[];
   tasks: MeetingTask[];
+  speakers?: Array<{
+    name: string;
+    tasks_assigned: string[];
+    sentiment: string;
+  }>;
 }
 
 export interface Meeting {
