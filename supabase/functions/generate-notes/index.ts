@@ -109,8 +109,8 @@ serve(async (req) => {
 
     // ── Attempt Gemini 2.0 Flash AI ───────────────────────────────────────────
     let notes = null;
-    const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
-
+    const GOOGLE_API_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+    
     if (GOOGLE_API_KEY) {
       try {
         console.log(`Calling Gemini AI (gemini-1.5-pro) for meeting: ${meetingId}`);
