@@ -65,11 +65,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sentiment: z.enum(["Positive", "Negative", "Neutral"])
         }))
       }),
-      prompt: `You are an intelligent meeting analysis assistant. Analyze the meeting transcript provided and extract structured highlights.
+      prompt: `You are a Senior Project Manager and AI Meeting Analyst. 
+Analyze the meeting transcript provided and extract structured insights with a focus on **OWNERSHIP and ACCOUNTABILITY**.
+
+### 🎯 GOAL
+- Identify EXACTLY who is doing what.
+- For every action item: If no specific name is mentioned but can be inferred from context, use that name. If it's truly unknown, use "Team" or "Unassigned".
+- **FORMAT RULE:** Every string in the "action_items" array MUST start with the assignee's name (e.g., "Rahul to fix security issue..."). 
 
 Rules:
-1. SENTIMENT must reflect actual tone: Positive (collaborative/productive), Negative (conflict/blame), Neutral (factual), Mixed.
-2. PRODUCTIVITY dynamically starts at 50, +10 if decisions made, +10 if tasks assigned, +10 if deadlines mentioned, +10 if clear agenda.
+1. SENTIMENT: Reflect tone (Positive, Negative, Neutral, Mixed).
+2. PRODUCTIVITY: Start at 50, +10 if decisions made, +10 if tasks assigned with clear owners, +10 if deadlines mentioned, +10 if clear agenda was followed.
+3. SUMMARY: 2-3 sentence narrative summary. Mention the key decision-makers and their primary commitments.
 
 Transcript: ${transcript}`,
     });

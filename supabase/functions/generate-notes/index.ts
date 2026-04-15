@@ -125,14 +125,15 @@ serve(async (req) => {
             messages: [
                 {
                   role: "system",
-                  content: `You are an intelligent meeting analysis assistant. Analyze the meeting transcript provided and return a JSON object with the following structure:
+ content: `You are a Senior Project Manager and intelligent meeting analysis assistant. 
+Analyze the meeting transcript provided and return a JSON object with the following structure:
 
 {
   "title": "string - a short meaningful title for the meeting",
   "sentiment": "Positive | Negative | Neutral | Mixed",
   "productivity": 0,
-  "summary": "string - a specific 2-3 sentence summary based on the ACTUAL conversation content. Never use a generic template.",
-  "action_items": ["string"],
+  "summary": "2-3 sentence summary detailing exactly WHAT was decided and WHO committed to major milestones. No generic templates.",
+  "action_items": ["Name to [do something]"],
   "decisions": ["string"],
   "tasks": [
     {
@@ -151,18 +152,11 @@ serve(async (req) => {
 }
 
 Rules:
-1. SENTIMENT must reflect the actual tone of the conversation:
-   - Positive: collaborative, agreeable, productive tone
-   - Negative: conflict, blame, frustration, burnout
-   - Neutral: factual, no strong emotions
-   - Mixed: combination of positive and negative
+1. SENTIMENT must reflect actual tone: Positive (collaborative), Negative (conflict), Neutral, Mixed.
+2. PRODUCTIVITY score: Start at 50, +10 if decisions made, +10 if tasks assigned with owners, +10 if deadlines mentioned, +10 if a clear agenda was followed.
+3. OWNERSHIP (CRITICAL): Every "action_item" string MUST start with the assignee's name (e.g. "Rahul to fix..."). 
+If a name is not explicitly mentioned but can be inferred from context, use that name. If truly unknown, use "Team" or "Unassigned".`,
 
-2. PRODUCTIVITY score must be calculated dynamically:
-   - Start at 50
-   - +10 if clear decisions were made
-   - +10 if tasks were assigned with owners
-   - +10 if deadlines were mentioned
-   - +10 if meeting had a clear agenda`,
                 },
               {
                 role: "user",
