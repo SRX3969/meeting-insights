@@ -112,11 +112,13 @@ Transcript: ${transcript}`,
       }
 
       return res.status(200).json({ success: true, notes });
-    } catch (aiErr: any) {
-      return res.status(500).json({ error: `AI Generation Failed: ${aiErr.message}` });
+    } catch (aiErr: unknown) {
+      const message = aiErr instanceof Error ? aiErr.message : String(aiErr);
+      return res.status(500).json({ error: `AI Generation Failed: ${message}` });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Critical Failure:", error);
-    return res.status(500).json({ error: `System Error: ${error.message}` });
+    const message = error instanceof Error ? error.message : String(error);
+    return res.status(500).json({ error: `System Error: ${message}` });
   }
 }

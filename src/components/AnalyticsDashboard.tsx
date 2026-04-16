@@ -16,16 +16,21 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
   const completed = useMemo(() => meetings.filter((m) => m.status === "completed"), [meetings]);
 
   const avgProductivity = useMemo(() => {
-    const scored = completed.filter((m) => (m as any).productivity_score != null);
+    const scored = completed.filter((m): m is { productivity_score: number } => typeof (m as { productivity_score?: unknown }).productivity_score === 'number');
     if (!scored.length) return 0;
-    return Math.round(scored.reduce((a, m) => a + ((m as any).productivity_score || 0), 0) / scored.length);
+    return Math.round(scored.reduce((a: number, m: {productivity_score?: number}) => a + (m.productivity_score || 0), 0) / scored.length);
   }, [completed]);
 
   const sentimentData = useMemo(() => {
     const counts = { positive: 0, neutral: 0, negative: 0 };
-    completed.forEach((m) => {
-      const s = (m as any).sentiment as string;
-      if (s && s in counts) counts[s as keyof typeof counts]++;
+    completed.forEach((m: unknown) => {
+      if (typeof m === 'object' && m !== null && 'sentiment' in m) {
+        const item = m as { sentiment: unknown };
+        const s = item.sentiment;
+        if (typeof s === 'string' && s in counts) {
+          counts[s as keyof typeof counts]++;
+        }
+      }
     });
     return Object.entries(counts)
       .filter(([, v]) => v > 0)
@@ -48,11 +53,11 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
 
   const productivityData = useMemo(() => {
     return completed
-      .filter((m) => (m as any).productivity_score != null)
+      .filter((m) => (m as {productivity_score?: number}).productivity_score != null)
       .slice(-10)
-      .map((m) => ({
+      .map((m: { title: string; productivity_score: number }) => ({
         title: m.title.slice(0, 15) + (m.title.length > 15 ? "…" : ""),
-        score: (m as any).productivity_score,
+        score: m.productivity_score,
       }));
   }, [completed]);
 
@@ -139,7 +144,7 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
+function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number }) {
   return (
     <div className="p-6 rounded-2xl border border-black/5 bg-white shadow-sm hover:shadow-md transition-all flex items-center gap-4">
       <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center shrink-0">

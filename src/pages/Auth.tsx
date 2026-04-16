@@ -22,7 +22,7 @@ const Auth = ({ mode }: AuthProps) => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
@@ -54,8 +54,12 @@ const Auth = ({ mode }: AuthProps) => {
         if (error) throw error;
         navigate("/dashboard");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error("Authentication failed");
+      }
     } finally {
       setLoading(false);
     }
