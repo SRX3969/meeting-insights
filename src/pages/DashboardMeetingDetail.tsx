@@ -50,6 +50,20 @@ const DashboardMeetingDetail = () => {
     const decisions = (meeting.decisions as string[]) || [];
     const tasks = (meeting.tasks as { task: string; owner: string; priority: string }[]) || [];
 
+    let insightsList: string[] = [];
+    if (meeting.participation_insights) {
+      const insights = meeting.participation_insights as {
+        mostActive: string;
+        engagementLevel: number;
+        speakerCount: number;
+      };
+      insightsList = [
+        `- Most Active: ${insights.mostActive}`,
+        `- Engagement: ${insights.engagementLevel}`,
+        `- Speakers: ${insights.speakerCount}`,
+      ];
+    }
+
     const content = [
       `# ${meeting.title}`,
       "",
@@ -68,13 +82,7 @@ const DashboardMeetingDetail = () => {
       "## Insights",
       `- Sentiment: ${meeting.sentiment || "N/A"}`,
       `- Productivity Score: ${meeting.productivity_score != null ? meeting.productivity_score + "%" : "N/A"}`,
-      ...(meeting.participation_insights
-        ? [
-            `- Most Active: ${(meeting.participation_insights as any).mostActive}`,
-            `- Engagement: ${(meeting.participation_insights as any).engagementLevel}`,
-            `- Speakers: ${(meeting.participation_insights as any).speakerCount}`,
-          ]
-        : []),
+      ...insightsList,
     ].join("\n");
 
     const blob = new Blob([content], { type: "text/markdown" });
@@ -118,12 +126,12 @@ const DashboardMeetingDetail = () => {
           summary: meeting.summary,
           actionItems: (meeting.action_items as string[]) || [],
           decisions: (meeting.decisions as string[]) || [],
-          tasks: ((meeting.tasks as any[]) || []).map((t) => ({
+          tasks: ((meeting.tasks as { task: string; owner: string; priority: "high" | "medium" | "low" }[]) || []).map((t) => ({
             task: t.task,
             owner: t.owner,
-            priority: t.priority as "high" | "medium" | "low",
+            priority: t.priority,
           })),
-          speakers: (meeting.participation_insights as any)?.speakers || [],
+          speakers: ((meeting.participation_insights as { speakers: string[]; mostActive: string; engagementLevel: string; speakerCount: number } | null)?.speakers) || [],
         }
       : null;
 
@@ -148,7 +156,6 @@ const DashboardMeetingDetail = () => {
                 minute: "2-digit",
               })}
             </p>
-          </div>
           <div className="flex items-center gap-1.5">
             {meeting.status === "processing" && (
               <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-xl">

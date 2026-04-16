@@ -204,7 +204,15 @@ serve(async (req) => {
       }
 
       const calData = await calRes.json();
-      const events = (calData.items || []).map((e: any) => ({
+      const events = (calData.items || []).map((e: {
+        id: string;
+        summary?: string;
+        start?: { dateTime?: string; date?: string };
+        end?: { dateTime?: string; date?: string };
+        hangoutLink?: string;
+        location?: string;
+        description?: string;
+      }) => ({
         id: e.id,
         title: e.summary || "Untitled Event",
         start: e.start?.dateTime || e.start?.date,

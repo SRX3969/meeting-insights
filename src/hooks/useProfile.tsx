@@ -53,8 +53,9 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Profile updated");
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to update profile");
+    onError: (err: unknown) => {
+      const errorMessage = err instanceof Error && err.message ? err.message : "Failed to update profile";
+      toast.error(errorMessage);
     },
   });
 }

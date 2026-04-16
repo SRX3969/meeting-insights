@@ -193,7 +193,7 @@ ${transcript}`
               actionItems: parsed.action_items || [],
               decisions: parsed.decisions || [],
               keyPoints: [],
-              tasks: (parsed.tasks || []).map((t: any) => ({
+              tasks: (parsed.tasks || []).map((t: { task: string; assignee: string; priority: number }) => ({
                 task: t.task,
                 owner: t.assignee,
                 priority: t.priority

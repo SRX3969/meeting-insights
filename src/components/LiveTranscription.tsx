@@ -11,17 +11,17 @@ export function LiveTranscription({ onTranscriptReady }: LiveTranscriptionProps)
   const [liveText, setLiveText] = useState("");
   const [interimText, setInterimText] = useState("");
   const [supported, setSupported] = useState(true);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) as { new (): SpeechRecognition } | undefined;
     if (!SpeechRecognition) {
       setSupported(false);
     }
   }, []);
 
   const startListening = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) as { new (): SpeechRecognition } | undefined;
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
@@ -29,7 +29,7 @@ export function LiveTranscription({ onTranscriptReady }: LiveTranscriptionProps)
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = "";
       let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -46,7 +46,7 @@ export function LiveTranscription({ onTranscriptReady }: LiveTranscriptionProps)
       setInterimText(interim);
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error:", event.error);
       if (event.error !== "no-speech") {
         setIsListening(false);

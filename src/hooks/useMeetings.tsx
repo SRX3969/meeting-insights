@@ -139,9 +139,10 @@ export function useGenerateNotes() {
         
         console.log("Gemini Sync Successful");
         toast.success("AI Intelligence updated successfully");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn("Cloud AI failed:", err);
-        toast.error(`Cloud AI Error: ${err.message}`);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error(`Cloud AI Error: ${errorMessage}`);
         
         // Robust Fallback as a safety net
         try {

@@ -64,7 +64,7 @@ const Settings = () => {
     });
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (): Promise<void> => {
     if (newPassword.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -79,8 +79,12 @@ const Settings = () => {
       toast.success("Password updated");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error(String(err));
+      }
     }
   };
 
