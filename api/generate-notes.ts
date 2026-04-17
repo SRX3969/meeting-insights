@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateObject } from "ai";
-import { createGoogle } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!supabaseUrl) return res.status(500).json({ error: "DB Error: SUPABASE_URL is missing." });
     if (!supabaseKey) return res.status(500).json({ error: "DB Error: SUPABASE_SERVICE_ROLE_KEY is missing." });
 
-    const supabase = createClient(supabaseUrl as string, supabaseKey as string);
+  const supabase = createClient(supabaseUrl as string, supabaseKey as string);
     const { data: { user }, error: authError } = await createClient(supabaseUrl as string, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
       global: { headers: { Authorization: authHeader || "" } },
     }).auth.getUser();
@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (authError || !user) return res.status(401).json({ error: "Unauthorized: Please log in again." });
 
     // Create Google provider explicitly
-    const google = createGoogle({
+    const google = createGoogleGenerativeAI({
       apiKey: GOOGLE_API_KEY,
     });
 
