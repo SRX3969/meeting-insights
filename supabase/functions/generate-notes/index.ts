@@ -38,7 +38,7 @@ SCHEMA:
   "title": "string",
   "sentiment": "Positive|Negative|Neutral|Mixed",
   "productivity": number,
-  "summary": "2-3 sentence paragraph",
+  "summary": "A narrative roadmap that EXPLICITLY details what every single person is doing by name (e.g. 'Rohit will do X, while Ananya focuses on Y').",
   "action_items": ["string"],
   "decisions": ["string"],
   "tasks": [{"task":"string", "assignee":"string", "priority":"high|medium|low"}],

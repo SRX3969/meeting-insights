@@ -78,8 +78,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
           prompt: `You are NoteMind AI, an elite Senior Project Manager. Transform this transcript into a JSON report.
           
-1. SUMMARY: In the 'summary' field, provide a 2-3 sentence paragraph that EXPLICITLY mentions who is doing what (e.g. "Rohit is leading X, while Ananya focuses on Y").
-2. ATTRIBUTION: Every task in the 'tasks' list MUST be attributed to a speaker. If someone agrees to a task, list it under their 'tasks_assigned' in the speakers section.
+1. DETAILED SUMMARY: In the 'summary' field, provide a narrative roadmap that EXPLICITLY details what every single active participant is doing. Every person mentioned in the transcript should have their core task or focus called out by name in this paragraph. (e.g. "Rohit will manage the API, Ananya is leading the UI redesign, and Isha is handling the database sync").
+2. ATTRIBUTION: Every task in the 'tasks' list MUST be attributed to a speaker.
 
 Transcript: ${transcript}`,
         });
