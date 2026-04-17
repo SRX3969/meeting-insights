@@ -1,23 +1,13 @@
-import { streamText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { streamText } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const config = {
   maxDuration: 60,
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS Headers
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
-    res.status(200).end();
-    return;
-  }
-
+export default async function POST(req: Request) {
   try {
-    const { messages, transcript, meetingTitle } = req.body;
+    const { messages, transcript, meetingTitle } = await req.json();
     const GOOGLE_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
 
     if (!GOOGLE_API_KEY) throw new Error("Missing Gemini API Key");
@@ -47,9 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages,
     });
 
-    return result.pipeDataStreamToResponse(res);
+    return result.toDataStreamResponse();
   } catch (error: any) {
     console.error("[Chat API Error]:", error);
-    return res.status(500).json({ error: error.message });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
+
