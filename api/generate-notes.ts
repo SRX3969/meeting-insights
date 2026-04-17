@@ -49,107 +49,121 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     // --- Dynamic Model Discovery ---
-    // Instead of guessing which model identifier is valid for this specific key/region,
-    // we fetch the list of available models and pick the best one available.
-    let bestModel = "gemini-1.5-flash"; // Default fallback
+    let validModels: string[] = [];
     try {
       const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GOOGLE_API_KEY}`);
       if (modelsResponse.ok) {
         const modelsData = await modelsResponse.json();
         const availableModels = modelsData.models || [];
         
-        // Find all models that support generating content
-        const validModels = availableModels
+        validModels = availableModels
           .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
           .map((m: any) => m.name.replace("models/", ""));
           
-        console.log(`[API] Available content models: ${validModels.join(", ")}`);
-
-        // Priority list: most stable/fast to least
-        const priorities = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-1.5-pro-latest", "gemini-pro"];
-        const found = priorities.find(p => validModels.includes(p));
-        
-        if (found) {
-          bestModel = found;
-          console.log(`[API] Selected optimal model: ${bestModel}`);
-        } else if (validModels.length > 0) {
-          bestModel = validModels[0];
-          console.log(`[API] Using first available model: ${bestModel}`);
-        }
+        console.log(`[Discovery] Accessible models: ${validModels.join(", ")}`);
       }
     } catch (discoveryErr) {
-      console.warn("[API] Discovery failed, using default fallback:", discoveryErr);
+      console.warn("[Discovery] API fetch failed:", discoveryErr);
     }
     // -------------------------------
 
-    try {
-      const { object: notes } = await generateObject({
-        model: google(bestModel), 
-        schema: z.object({
-          title: z.string(),
-          sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
-          productivity: z.number().int().describe("Scoring: 50 base, +10 for decisions, +10 for tasks with owners, +10 for deadlines, +10 for clarity."),
-          summary: z.string().describe("A 2-3 sentence executive-grade narrative focused on outcomes."),
-          action_items: z.array(z.string()),
-          decisions: z.array(z.string()),
-          tasks: z.array(z.object({
-            task: z.string(),
-            assignee: z.string(),
-            priority: z.enum(["high", "medium", "low"])
-          })),
-          speakers: z.array(z.object({
-            name: z.string(),
-            tasks_assigned: z.array(z.string()),
-            sentiment: z.enum(["Positive", "Negative", "Neutral"])
-          }))
-        }),
-        prompt: `You are an ELITE Senior Project Manager and AI Meeting Strategist. 
-Your goal is to transform the provided transcript into a high-signal, executive-grade JSON report.
+    // Filter and sort by quality/stability
+    const candidates = [
+      ...validModels.filter(m => m.includes("1.5-flash")),
+      ...validModels.filter(m => m.includes("1.5-pro")),
+      ...validModels.filter(m => m.includes("gemini-pro")),
+      ...validModels.filter(m => !m.includes("1.5") && !m.includes("pro")), // others (like 2.0-flash)
+    ];
 
-### 🎯 ANALYSIS PHILOSOPHY
-- **Ownership over description:** Don't just list tasks; map them to people. 
-- **Accountability:** Every action item MUST start with the assignee's name. (e.g. "Rahul to finalize the API docs").
-- **Precision:** Use concrete metrics and deadlines if mentioned. Use "Unassigned" only as a last resort.
+    // Remove duplicates
+    const processQueue = [...new Set(candidates)];
+    if (processQueue.length === 0) processQueue.push("gemini-1.5-flash"); // Disaster fallback
 
-### ⚖️ PRODUCTIVITY SCORING RULES
-- Base score: 50.
-- +10: Clear consensus/decisions reached.
-- +10: Every major task assigned to a specific owner.
-- +10: Explicit deadlines or timelines mentioned.
-- +10: Factual, no-fluff dialogue.
-- +10: No open-ended loop left unaddressed.
+    console.log(`[API] Processing queue: ${processQueue.join(" -> ")}`);
 
-Transcript: ${transcript}`,
+    let lastError = "";
+    let finalNotes = null;
+
+    // Loop through candidates until one succeeds or we run out
+    for (const currentModel of processQueue) {
+      try {
+        console.log(`[AI] Attempting generation with: ${currentModel}`);
+        const { object } = await generateObject({
+          model: google(currentModel),
+          schema: z.object({
+            title: z.string(),
+            sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
+            productivity: z.number().int(),
+            summary: z.string(),
+            action_items: z.array(z.string()),
+            decisions: z.array(z.string()),
+            tasks: z.array(z.object({
+              task: z.string(),
+              assignee: z.string(),
+              priority: z.enum(["high", "medium", "low"])
+            })),
+            speakers: z.array(z.object({
+              name: z.string(),
+              tasks_assigned: z.array(z.string()),
+              sentiment: z.enum(["Positive", "Negative", "Neutral"])
+            }))
+          }),
+          prompt: `You are an ELITE Senior Project Manager. Transform this transcript into a JSON report.
+          Transcript: ${transcript}`,
+        });
+
+        finalNotes = object;
+        console.log(`[AI] SUCCESS with ${currentModel}`);
+        break; // Exit loop on success
+      } catch (err: any) {
+        lastError = err.message;
+        console.warn(`[AI] FAILED with ${currentModel}: ${err.message}`);
+        
+        // If it's a "High Demand" error, we immediately try the next model in the queue
+        if (err.message.includes("demand") || err.message.includes("503") || err.message.includes("429")) {
+          continue;
+        }
+        
+        // For other fatal errors (like invalid prompt), we might want to stop, 
+        // but for now, we'll try everything in the queue.
+        continue;
+      }
+    }
+
+    if (!finalNotes) {
+      return res.status(500).json({ 
+        error: `All AI models exhausted. Last error: ${lastError}`,
+        queue: processQueue
       });
+    }
 
+    try {
       const { error: updateError } = await supabase
         .from("meetings")
         .update({
-          title: notes.title,
-          summary: notes.summary,
-          action_items: notes.action_items,
-          decisions: notes.decisions,
+          title: finalNotes.title,
+          summary: finalNotes.summary,
+          action_items: finalNotes.action_items,
+          decisions: finalNotes.decisions,
           key_points: [],
-          tasks: notes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
-          sentiment: notes.sentiment.toLowerCase(),
-          productivity_score: notes.productivity,
+          tasks: finalNotes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
+          sentiment: finalNotes.sentiment.toLowerCase(),
+          productivity_score: finalNotes.productivity,
           participation_insights: {
-            mostActive: notes.speakers?.[0]?.name || "Unknown",
-            speakerCount: notes.speakers?.length || 1,
+            mostActive: finalNotes.speakers?.[0]?.name || "Unknown",
+            speakerCount: finalNotes.speakers?.length || 1,
             engagementLevel: "high",
-            speakers: notes.speakers // Store full data
+            speakers: finalNotes.speakers
           },
           status: "completed",
         })
         .eq("id", meetingId);
 
-      if (updateError) {
-        return res.status(500).json({ error: `Database Update Failed: ${updateError.message}` });
-      }
+      if (updateError) throw updateError;
 
-      return res.status(200).json({ success: true, notes });
-    } catch (aiErr: any) {
-      return res.status(500).json({ error: `AI Generation Failed: ${aiErr.message} (Tried model: ${bestModel})` });
+      return res.status(200).json({ success: true, notes: finalNotes });
+    } catch (dbErr: any) {
+      return res.status(500).json({ error: `Database Update Failed: ${dbErr.message}` });
     }
   } catch (error: any) {
     console.error("Critical Failure:", error);
