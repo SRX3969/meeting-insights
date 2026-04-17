@@ -28,6 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Support both standardized Google and explicit Gemini variable names
     const GOOGLE_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
 
+    console.log(`[API] Processing meeting: ${meetingId}`);
+    console.log(`[API] Key detected: ${GOOGLE_API_KEY ? 'YES (truncated: ' + GOOGLE_API_KEY.slice(0, 5) + '...)' : 'NO'}`);
+
     // Strict validation with descriptive errors
     if (!GOOGLE_API_KEY) return res.status(500).json({ error: "AI Error: GOOGLE_GENERATIVE_AI_API_KEY is missing in Vercel settings." });
     if (!supabaseUrl) return res.status(500).json({ error: "DB Error: SUPABASE_URL is missing." });
@@ -46,9 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     try {
-      // Using Gemini 1.5 Pro to ensure API v1beta compatibility as Flash might be region-locked or unsupported
+      // Using gemini-1.5-flash-latest which is the most stable and available identifier for v1beta
       const { object: notes } = await generateObject({
-        model: google("gemini-1.5-pro"), 
+        model: google("gemini-1.5-flash-latest"), 
         schema: z.object({
           title: z.string(),
           sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
