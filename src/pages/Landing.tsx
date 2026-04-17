@@ -198,7 +198,7 @@ const Landing = () => {
           <div className="relative overflow-hidden rounded-[4rem] group shadow-2xl shadow-primary/20">
              {/* Blurred Image Background */}
              <div className="absolute inset-0 z-0">
-                <img src={ctaBg} alt="" className="w-full h-full object-cover grayscale opacity-40 group-hover:scale-110 transition-transform duration-[2000ms]" />
+                <img src={ctaBg} alt="" className="w-full h-full object-cover grayscale opacity-40 group-hover:scale-110 transition-transform duration-2000" />
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-[#0A0A0A] opacity-90 backdrop-blur-sm" />
              </div>
              
