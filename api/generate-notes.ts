@@ -98,18 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             sentiment: z.enum(["Positive", "Negative", "Neutral"])
           }))
         }),
-        prompt: `You are a World-Class Executive Governance Lead. Your mission is to provide an inescapable level of clarity and accountability from this meeting transcript.
-
-ANALYSIS REQUIREMENTS:
-1. SUMMARY: Provide a deep, narrative-style Markdown summary. 
-   - Start with a '# Strategic Overview' section.
-   - Use a '## The Accountability Matrix' section to explicitly list every stakeholder and their primary focus from this meeting.
-   - Mention names explicitly: "Rahul is driving the X initiative," "Sarah agreed to Y."
-2. ACTION ITEMS: Be extremely granular. No vague tasks. Every item must be attributed to a specific person.
-3. DECISIONS: Capture the 'Why' behind every decision, not just the result.
-
-TRANSCRIPT FOR ANALYSIS:
-${transcript}`,
+        prompt: `You are an ELITE Senior Project Manager. Transform this transcript into a JSON report.
+          Transcript: ${transcript}`,
       });
 
       console.log(`[AI] Generation Successful. Syncing to DB...`);

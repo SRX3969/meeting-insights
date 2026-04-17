@@ -262,9 +262,7 @@ const DashboardMeetingDetail = () => {
         <div className="fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
             <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
-            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-headings:font-black prose-headings:tracking-tight prose-p:leading-relaxed">
-              <ReactMarkdown>{notes.summary}</ReactMarkdown>
-            </div>
+            <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>
           </div>
 
           <OutputTabs notes={notes} />

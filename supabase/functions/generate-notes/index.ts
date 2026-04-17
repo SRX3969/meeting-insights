@@ -122,22 +122,20 @@ serve(async (req) => {
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `You are a World-Class Executive Governance Lead. Your mission is to provide an inescapable level of clarity and accountability from this meeting transcript.
+                text: `You are an elite Senior Project Manager and Meeting Strategist. 
+Your goal is to transform the provided transcript into a high-signal, executive-grade JSON report.
 
-### 🎯 ANALYSIS REQUIREMENTS
-1. SUMMARY: Provide a deep, narrative-style Markdown summary. 
-   - Start with a '# Strategic Overview' section.
-   - Use a '## The Accountability Matrix' section to explicitly list every stakeholder and their primary focus from this meeting.
-   - Mention names explicitly: "Rahul is driving the X initiative," "Sarah agreed to Y."
-2. ACTION ITEMS: Be extremely granular. No vague tasks. Every item must be attributed to a specific person.
-3. DECISIONS: Capture the 'Why' behind every decision, not just the result.
+### 🎯 ANALYSIS PHILOSOPHY
+- **Ownership over description:** Don't just list tasks; map them to people. 
+- **Accountability:** Every action item MUST start with the assignee's name. (e.g. "Rahul to finalize the API docs").
+- **Precision:** Use concrete metrics and deadlines if mentioned. Use "Unassigned" only as a last resort.
 
 ### 📊 OUTPUT SCHEMA
 {
   "title": "A sharp, professional title",
   "sentiment": "Positive | Negative | Neutral | Mixed (based on tone)",
   "productivity": 0,
-  "summary": "A deep, multi-paragraph Markdown summary following the requirements above.",
+  "summary": "A 2-3 sentence executive summary focus on outcomes, not the play-by-play.",
   "action_items": ["Name to [do something] — REQUIRED format"],
   "decisions": ["Final, confirmed outcomes only"],
   "tasks": [
@@ -159,15 +157,17 @@ serve(async (req) => {
 ### ⚖️ PRODUCTIVITY SCORING RULES
 - Base score: 50.
 - +10: Clear consensus/decisions reached.
-- +10: every major task assigned to a specific owner.
+- +10: Every major task assigned to a specific owner.
 - +10: Explicit deadlines or timelines mentioned.
+- +10: Factual, no-fluff dialogue.
+- +10: No open-ended loop left unaddressed.
 
 Transcript:
 ${transcript}`
               }]
             }],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 0.2,
               topP: 0.8,
               topK: 40,
               response_mime_type: "application/json",

@@ -70,9 +70,7 @@ export function OutputTabs({ notes }: OutputTabsProps) {
 
       <div className="fade-slide-in" key={activeTab}>
         {activeTab === "summary" && (
-          <div className="prose prose-sm max-w-none text-foreground/85 prose-headings:text-foreground prose-strong:text-foreground prose-headings:font-black prose-headings:tracking-tight prose-p:leading-relaxed">
-            <ReactMarkdown>{notes.summary}</ReactMarkdown>
-          </div>
+          <p className="text-sm leading-relaxed text-foreground/85">{notes.summary}</p>
         )}
 
         {activeTab === "actionItems" && (
