@@ -38,7 +38,7 @@ export default async function POST(req: Request) {
       messages,
     });
 
-    return result.toDataStreamResponse();
+    return (result as any).toDataStreamResponse();
   } catch (error: any) {
     console.error("[Chat API Error]:", error);
     return new Response(JSON.stringify({ error: error.message }), {
