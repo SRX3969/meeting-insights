@@ -133,15 +133,15 @@
   }
 
   .notion-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 h-11 text-sm font-semibold transition-all duration-150 active:scale-[0.98] whitespace-nowrap;
   }
 
   .notion-btn-primary {
-    @apply notion-btn bg-primary text-primary-foreground hover:opacity-90 shadow-sm;
+    @apply notion-btn bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/10;
   }
 
   .notion-btn-secondary {
-    @apply notion-btn bg-secondary text-secondary-foreground hover:bg-accent;
+    @apply notion-btn bg-secondary text-secondary-foreground border border-black/[0.03] hover:bg-accent;
   }
 
   .notion-btn-ghost {

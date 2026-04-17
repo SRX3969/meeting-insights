@@ -97,14 +97,14 @@ const Dashboard = () => {
           <Button 
             variant="outline" 
             onClick={() => setShowAnalytics(!showAnalytics)} 
-            className="h-10 px-6 rounded-xl bg-white border-black/10 shadow-sm font-bold text-xs hover:bg-black/5"
+            className="notion-btn-secondary"
           >
             <BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" />
             Analytics
           </Button>
           <Button 
             onClick={() => setShowInput(!showInput)} 
-            className="h-10 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/10 transition-all"
+            className="notion-btn-primary"
           >
             <Plus className="h-4 w-4 mr-2" />
             {showInput ? "Cancel" : "New Meeting"}
@@ -161,7 +161,7 @@ const Dashboard = () => {
               />
               {isTranscribing && (
                 <div className="px-8 pb-6 text-xs font-black text-primary animate-pulse tracking-widest uppercase italic">
-                  {transcriptionProgress || "Syncing Audio Intelligence..."}
+                  {transcriptionProgress || "Syncing Audio Transcription..."}
                 </div>
               )}
             </div>
@@ -230,36 +230,24 @@ const Dashboard = () => {
             </div>
          </div>
 
-         {/* Right Sidebar - Active Context */}
-         <div className="space-y-8 slide-up" style={{ animationDelay: "0.3s" }}>
-            <div className="p-10 rounded-[2.5rem] bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] text-white space-y-4 shadow-2xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16" />
-               <Zap className="h-8 w-8 text-primary" />
-               <h4 className="text-xl font-black tracking-tight leading-none italic uppercase">Intelligence Mode</h4>
-               <p className="text-sm font-bold text-white/50 leading-relaxed italic">
-                 "Paste raw Zoom or Slack transcripts. Our engine extracts the hidden structure for you."
-               </p>
-               <Button className="w-full bg-white/10 hover:bg-white/20 border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-widest py-6">
-                 Learn Syntax
-               </Button>
-            </div>
-
-            <div className="rounded-[2.5rem] border border-black/5 p-8 bg-white/40 backdrop-blur-sm space-y-6">
-               <h4 className="text-sm font-black text-[#0A0A0A] uppercase tracking-widest">Active Syncs</h4>
-               <div className="space-y-4">
-                  {[
-                    { name: 'Product Growth', time: '2m ago' },
-                    { name: 'Architecture Review', time: '1h ago' }
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/[0.03] shadow-sm">
-                       <span className="text-xs font-bold text-[#0A0A0A]">{item.name}</span>
-                       <span className="text-[10px] font-bold text-muted-foreground/50">{item.time}</span>
-                    </div>
-                  ))}
-               </div>
-            </div>
-         </div>
-      </div>
+          {/* Right Sidebar - Status & Context */}
+          <div className="space-y-8 slide-up" style={{ animationDelay: "0.3s" }}>
+             <div className="rounded-[2.5rem] border border-black/5 p-8 bg-white/40 backdrop-blur-sm space-y-6">
+                <h4 className="text-sm font-black text-[#0A0A0A] uppercase tracking-widest">Active Syncs</h4>
+                <div className="space-y-4">
+                   {[
+                     { name: 'Product Growth', time: '2m ago' },
+                     { name: 'Architecture Review', time: '1h ago' }
+                   ].map((item, i) => (
+                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/[0.03] shadow-sm">
+                        <span className="text-xs font-bold text-[#0A0A0A]">{item.name}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/50">{item.time}</span>
+                     </div>
+                   ))}
+                </div>
+             </div>
+          </div>
+       </div>
     </div>
   );
 };

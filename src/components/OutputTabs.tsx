@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MeetingNotes } from "@/lib/types";
 import { TaskCards } from "./TaskCards";
 import { Copy, Check } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface OutputTabsProps {
   notes: MeetingNotes;
@@ -69,7 +70,9 @@ export function OutputTabs({ notes }: OutputTabsProps) {
 
       <div className="fade-slide-in" key={activeTab}>
         {activeTab === "summary" && (
-          <p className="text-sm leading-relaxed text-foreground/85">{notes.summary}</p>
+          <div className="prose prose-sm max-w-none text-foreground/85 prose-headings:text-foreground prose-strong:text-foreground prose-headings:font-black prose-headings:tracking-tight prose-p:leading-relaxed">
+            <ReactMarkdown>{notes.summary}</ReactMarkdown>
+          </div>
         )}
 
         {activeTab === "actionItems" && (

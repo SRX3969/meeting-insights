@@ -52,7 +52,7 @@ export function AnalyticsDashboard({ meetings }: { meetings: DbMeeting[] }) {
         <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mx-auto mb-4 border border-primary/10">
           <Brain className="h-10 w-10 text-primary/40 animate-pulse" />
         </div>
-        <h3 className="text-xl font-black text-[#0A0A0A] tracking-tight">Intelligence Engine Standby</h3>
+        <h3 className="text-xl font-black text-[#0A0A0A] tracking-tight">AI Insights Standby</h3>
         <p className="text-muted-foreground text-sm font-medium max-w-xs mx-auto">Complete your first sync to unlock deep productivity insights and sentiment mapping.</p>
       </div>
     );

@@ -67,93 +67,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     // -------------------------------
 
-    // Filter and sort by quality/stability
-    const candidates = [
-      ...validModels.filter(m => m.includes("1.5-flash")),
-      ...validModels.filter(m => m.includes("1.5-pro")),
-      ...validModels.filter(m => m.includes("gemini-pro")),
-      ...validModels.filter(m => !m.includes("1.5") && !m.includes("pro")), // others (like 2.0-flash)
-    ];
-
-    // Remove duplicates
-    const processQueue = [...new Set(candidates)];
-    if (processQueue.length === 0) processQueue.push("gemini-1.5-flash"); // Disaster fallback
-
-    console.log(`[API] Processing queue: ${processQueue.join(" -> ")}`);
-
-    let lastError = "";
-    let finalNotes = null;
-
-    // Loop through candidates until one succeeds or we run out
-    for (const currentModel of processQueue) {
-      try {
-        console.log(`[AI] Attempting generation with: ${currentModel}`);
-        const { object } = await generateObject({
-          model: google(currentModel),
-          schema: z.object({
-            title: z.string(),
-            sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
-            productivity: z.number().int(),
-            summary: z.string(),
-            action_items: z.array(z.string()),
-            decisions: z.array(z.string()),
-            tasks: z.array(z.object({
-              task: z.string(),
-              assignee: z.string(),
-              priority: z.enum(["high", "medium", "low"])
-            })),
-            speakers: z.array(z.object({
-              name: z.string(),
-              tasks_assigned: z.array(z.string()),
-              sentiment: z.enum(["Positive", "Negative", "Neutral"])
-            }))
-          }),
-          prompt: `You are an ELITE Senior Project Manager. Transform this transcript into a JSON report.
-          Transcript: ${transcript}`,
-        });
-
-        finalNotes = object;
-        console.log(`[AI] SUCCESS with ${currentModel}`);
-        break; // Exit loop on success
-      } catch (err: any) {
-        lastError = err.message;
-        console.warn(`[AI] FAILED with ${currentModel}: ${err.message}`);
-        
-        // If it's a "High Demand" error, we immediately try the next model in the queue
-        if (err.message.includes("demand") || err.message.includes("503") || err.message.includes("429")) {
-          continue;
-        }
-        
-        // For other fatal errors (like invalid prompt), we might want to stop, 
-        // but for now, we'll try everything in the queue.
-        continue;
-      }
-    }
-
-    if (!finalNotes) {
-      return res.status(500).json({ 
-        error: `All AI models exhausted. Last error: ${lastError}`,
-        queue: processQueue
-      });
+    // --- Speed-Optimized Model Selection ---
+    // We prioritize gemini-1.5-flash-latest for speed (usually <3-5s)
+    // We only perform deep discovery if the preferred model is missing
+    let bestModel = "gemini-1.5-flash-latest";
+    if (!validModels.includes(bestModel)) {
+      const preferred = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+      bestModel = preferred.find(p => validModels.includes(p)) || validModels[0] || "gemini-1.5-flash";
     }
 
     try {
+      console.log(`[AI] Strategic Sync: Attempting with ${bestModel}`);
+      const { object: notes } = await generateObject({
+        model: google(bestModel), 
+        schema: z.object({
+          title: z.string().describe("Concise, impactful meeting title"),
+          sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
+          productivity: z.number().int().min(0).max(100),
+          summary: z.string().describe("A deep, multi-paragraph Markdown summary. Include sections for # Context, # Major Milestones, and # Strategic Roadmap."),
+          action_items: z.array(z.string().describe("Format: [PERSON NAME]: [ULTRA-DETAILED TASK DESCRIPTION]")),
+          decisions: z.array(z.string().describe("Core decisions made, including the rationale")),
+          tasks: z.array(z.object({
+            task: z.string(),
+            assignee: z.string(),
+            priority: z.enum(["high", "medium", "low"])
+          })),
+          speakers: z.array(z.object({
+            name: z.string(),
+            tasks_assigned: z.array(z.string()),
+            sentiment: z.enum(["Positive", "Negative", "Neutral"])
+          }))
+        }),
+        prompt: `You are a World-Class Executive Governance Lead. Your mission is to provide an inescapable level of clarity and accountability from this meeting transcript.
+
+ANALYSIS REQUIREMENTS:
+1. SUMMARY: Provide a deep, narrative-style Markdown summary. 
+   - Start with a '# Strategic Overview' section.
+   - Use a '## The Accountability Matrix' section to explicitly list every stakeholder and their primary focus from this meeting.
+   - Mention names explicitly: "Rahul is driving the X initiative," "Sarah agreed to Y."
+2. ACTION ITEMS: Be extremely granular. No vague tasks. Every item must be attributed to a specific person.
+3. DECISIONS: Capture the 'Why' behind every decision, not just the result.
+
+TRANSCRIPT FOR ANALYSIS:
+${transcript}`,
+      });
+
+      console.log(`[AI] Generation Successful. Syncing to DB...`);
+
       const { error: updateError } = await supabase
         .from("meetings")
         .update({
-          title: finalNotes.title,
-          summary: finalNotes.summary,
-          action_items: finalNotes.action_items,
-          decisions: finalNotes.decisions,
+          title: notes.title,
+          summary: notes.summary,
+          action_items: notes.action_items,
+          decisions: notes.decisions,
           key_points: [],
-          tasks: finalNotes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
-          sentiment: finalNotes.sentiment.toLowerCase(),
-          productivity_score: finalNotes.productivity,
+          tasks: notes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
+          sentiment: notes.sentiment.toLowerCase(),
+          productivity_score: notes.productivity,
           participation_insights: {
-            mostActive: finalNotes.speakers?.[0]?.name || "Unknown",
-            speakerCount: finalNotes.speakers?.length || 1,
+            mostActive: notes.speakers?.[0]?.name || "Unknown",
+            speakerCount: notes.speakers?.length || 1,
             engagementLevel: "high",
-            speakers: finalNotes.speakers
+            speakers: notes.speakers
           },
           status: "completed",
         })
@@ -161,9 +137,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (updateError) throw updateError;
 
-      return res.status(200).json({ success: true, notes: finalNotes });
+      return res.status(200).json({ success: true, notes });
     } catch (dbErr: any) {
-      return res.status(500).json({ error: `Database Update Failed: ${dbErr.message}` });
+      return res.status(500).json({ error: `AI/DB Sync Failed: ${dbErr.message}` });
     }
   } catch (error: any) {
     console.error("Critical Failure:", error);

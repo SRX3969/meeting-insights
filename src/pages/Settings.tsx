@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Shield, Palette, AlertTriangle, Sun, Moon, Monitor } from "lucide-react";
+import { User, Shield, Palette, AlertTriangle, Sun, Moon, Monitor, Share2, Database, Github } from "lucide-react";
 
 const EMOJI_OPTIONS = ["🧠", "😊", "🚀", "💜", "🎯", "⚡", "🌟", "🎨", "📝", "💡", "🔥", "🌈"];
 
@@ -49,11 +49,31 @@ const Settings = () => {
   const [username, setUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Integration States
+  const [notionToken, setNotionToken] = useState("");
+  const [notionDbId, setNotionDbId] = useState("");
+  const [linearToken, setLinearToken] = useState("");
+  const [linearTeamId, setLinearTeamId] = useState("");
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
       setUsername(profile.username || "");
+    }
+    
+    // Load integration settings from localStorage for now
+    const savedNotion = localStorage.getItem("notemind_notion_config");
+    if (savedNotion) {
+      const parsed = JSON.parse(savedNotion);
+      setNotionToken(parsed.token || "");
+      setNotionDbId(parsed.dbId || "");
+    }
+    const savedLinear = localStorage.getItem("notemind_linear_config");
+    if (savedLinear) {
+      const parsed = JSON.parse(savedLinear);
+      setLinearToken(parsed.token || "");
+      setLinearTeamId(parsed.teamId || "");
     }
   }, [profile]);
 
@@ -90,6 +110,12 @@ const Settings = () => {
     toast.success("Signed out. Contact support to fully delete your account.");
   };
 
+  const saveIntegrations = () => {
+    localStorage.setItem("notemind_notion_config", JSON.stringify({ token: notionToken, dbId: notionDbId }));
+    localStorage.setItem("notemind_linear_config", JSON.stringify({ token: linearToken, teamId: linearTeamId }));
+    toast.success("Integrations updated successfully");
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-10">
@@ -112,6 +138,9 @@ const Settings = () => {
         <TabsList className="rounded-xl">
           <TabsTrigger value="profile" className="gap-1.5 rounded-lg">
             <User className="h-3.5 w-3.5" /> Profile
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-1.5 rounded-lg">
+            <Share2 className="h-3.5 w-3.5" /> Integrations
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-1.5 rounded-lg">
             <Shield className="h-3.5 w-3.5" /> Security

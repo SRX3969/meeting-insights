@@ -138,7 +138,7 @@ export function useGenerateNotes() {
         }
         
         console.log("Gemini Sync Successful");
-        toast.success("AI Intelligence updated successfully");
+        toast.success("AI Notes updated successfully");
       } catch (err: any) {
         console.warn("Cloud AI failed:", err);
         toast.error(`Cloud AI Error: ${err.message}`);
@@ -164,10 +164,10 @@ export function useGenerateNotes() {
             .eq("id", meetingId);
 
           if (updateError) throw updateError;
-          toast.info("Local Intelligence Sync enabled");
+          toast.info("Local Insights Sync enabled");
         } catch (fallbackErr) {
           console.error("Fatal error in fallback logic:", fallbackErr);
-          throw new Error("Deep Intelligence Engine failure");
+          throw new Error("AI Engine failure");
         }
       }
     },

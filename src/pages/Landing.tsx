@@ -65,7 +65,7 @@ const Landing = () => {
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-[#0A0A0A] pb-2">
                 Turn messy meetings into 
-                <span className="block bg-gradient-to-r from-primary via-purple-600 to-indigo-600 bg-clip-text text-transparent italic font-serif py-2 pr-4">pure intelligence.</span>
+                <span className="block bg-gradient-to-r from-primary via-purple-600 to-indigo-600 bg-clip-text text-transparent italic font-serif py-2 pr-4">actionable insights.</span>
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-semibold opacity-90">
@@ -153,7 +153,7 @@ const Landing = () => {
         {/* Brand/Trust Section */}
         <section className="py-16 border-y border-black/5 bg-white/50 relative overflow-hidden">
            <div className="max-w-7xl mx-auto px-6 text-center space-y-12">
-              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/50">Modern companies shipping with Notemind Intelligence</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/50">Modern companies shipping with Notemind AI</p>
               <div className="flex flex-wrap justify-center items-center gap-16 md:gap-24 opacity-60">
                  <div className="flex items-center gap-3 text-2xl font-black text-[#0A0A0A]">
                     <Shield className="h-7 w-7 text-primary" /> SECURE
@@ -229,7 +229,7 @@ const Landing = () => {
                  </div>
                  <span className="text-2xl font-black text-[#0A0A0A] tracking-tighter">Notemind</span>
               </div>
-              <p className="text-sm font-bold text-muted-foreground leading-relaxed max-w-xs uppercase tracking-tighter">The future of meeting intelligence is here.</p>
+              <p className="text-sm font-bold text-muted-foreground leading-relaxed max-w-xs uppercase tracking-tighter">The future of meeting insights is here.</p>
            </div>
            <div className="flex flex-wrap justify-center gap-10 text-muted-foreground text-sm font-black uppercase tracking-widest text-[11px]">
               <a href="#" className="hover:text-primary transition-colors hover:scale-105 inline-block">Twitter</a>

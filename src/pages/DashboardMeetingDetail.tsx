@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { useMeeting, useDeleteMeeting, useGenerateNotes } from "@/hooks/useMeetings";
 import { OutputTabs } from "@/components/OutputTabs";
-import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users, Sparkles } from "lucide-react";
+import { MeetingChat } from "@/components/MeetingChat";
+import { ArrowLeft, Trash2, Download, RefreshCw, Copy, Share2, TrendingUp, SmilePlus, Users, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingNotes } from "@/lib/types";
 import { toast } from "sonner";
@@ -12,6 +15,7 @@ const DashboardMeetingDetail = () => {
   const deleteMeeting = useDeleteMeeting();
   const generateNotes = useGenerateNotes();
   const navigate = useNavigate();
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!id || !confirm("Delete this meeting?")) return;
@@ -176,6 +180,14 @@ const DashboardMeetingDetail = () => {
                 <Button variant="outline" size="sm" onClick={handleShare} className="rounded-xl">
                   <Share2 className="h-4 w-4" />
                 </Button>
+                <Button 
+                  onClick={() => setIsChatOpen(true)} 
+                  className="rounded-xl gap-2 bg-[#0A0A0A] text-white hover:bg-black/80 shadow-xl"
+                  size="sm"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  AI Chat
+                </Button>
               </>
             )}
             <Button variant="ghost" size="sm" onClick={handleDelete} className="rounded-xl">
@@ -250,7 +262,9 @@ const DashboardMeetingDetail = () => {
         <div className="fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
             <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
-            <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>
+            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-headings:font-black prose-headings:tracking-tight prose-p:leading-relaxed">
+              <ReactMarkdown>{notes.summary}</ReactMarkdown>
+            </div>
           </div>
 
           <OutputTabs notes={notes} />
@@ -263,6 +277,13 @@ const DashboardMeetingDetail = () => {
           {meeting.transcript}
         </p>
       </details>
+
+      <MeetingChat 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+        meetingTitle={meeting.title || "Meeting"} 
+        transcript={meeting.transcript || ""}
+      />
     </div>
   );
 };

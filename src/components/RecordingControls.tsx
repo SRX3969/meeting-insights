@@ -57,9 +57,9 @@ export function RecordingControls({ onRecordingComplete }: RecordingControlsProp
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       {isRecording ? (
-        <>
+        <div className="flex items-center gap-3">
           <button onClick={stopRecording} className="notion-btn-secondary gap-2">
             <Square className="h-3.5 w-3.5" />
             Stop Recording
@@ -68,13 +68,13 @@ export function RecordingControls({ onRecordingComplete }: RecordingControlsProp
             <span className="recording-dot" />
             <span className="font-mono tabular-nums">{formatTime(seconds)}</span>
           </div>
-        </>
+        </div>
       ) : (
         <button onClick={startRecording} className="notion-btn-secondary">
           <Mic className="h-4 w-4" />
           Record Audio
         </button>
       )}
-    </div>
+    </>
   );
 }
