@@ -48,10 +48,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey: GOOGLE_API_KEY,
     });
 
+    // --- Dynamic Model Discovery ---
+    // Instead of guessing which model identifier is valid for this specific key/region,
+    // we fetch the list of available models and pick the best one available.
+    let bestModel = "gemini-1.5-flash"; // Default fallback
     try {
-      // Using gemini-1.5-flash-latest which is the most stable and available identifier for v1beta
+      const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GOOGLE_API_KEY}`);
+      if (modelsResponse.ok) {
+        const modelsData = await modelsResponse.json();
+        const availableModels = modelsData.models || [];
+        
+        // Find all models that support generating content
+        const validModels = availableModels
+          .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+          .map((m: any) => m.name.replace("models/", ""));
+          
+        console.log(`[API] Available content models: ${validModels.join(", ")}`);
+
+        // Priority list: most stable/fast to least
+        const priorities = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-1.5-pro-latest", "gemini-pro"];
+        const found = priorities.find(p => validModels.includes(p));
+        
+        if (found) {
+          bestModel = found;
+          console.log(`[API] Selected optimal model: ${bestModel}`);
+        } else if (validModels.length > 0) {
+          bestModel = validModels[0];
+          console.log(`[API] Using first available model: ${bestModel}`);
+        }
+      }
+    } catch (discoveryErr) {
+      console.warn("[API] Discovery failed, using default fallback:", discoveryErr);
+    }
+    // -------------------------------
+
+    try {
       const { object: notes } = await generateObject({
-        model: google("gemini-1.5-flash-latest"), 
+        model: google(bestModel), 
         schema: z.object({
           title: z.string(),
           sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
@@ -116,7 +149,7 @@ Transcript: ${transcript}`,
 
       return res.status(200).json({ success: true, notes });
     } catch (aiErr: any) {
-      return res.status(500).json({ error: `AI Generation Failed: ${aiErr.message}` });
+      return res.status(500).json({ error: `AI Generation Failed: ${aiErr.message} (Tried model: ${bestModel})` });
     }
   } catch (error: any) {
     console.error("Critical Failure:", error);
