@@ -43,6 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (e) {}
 
     const processQueue = [
+      ...validModels.filter(m => m.includes("2.0-flash")),
       ...validModels.filter(m => m.includes("1.5-flash-8b")),
       ...validModels.filter(m => m.includes("1.5-flash") && !m.includes("8b")),
       ...validModels.filter(m => m.includes("1.5-pro")),
