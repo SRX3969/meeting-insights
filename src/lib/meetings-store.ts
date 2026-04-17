@@ -55,6 +55,22 @@ export function generateMockNotes(transcript: string): MeetingNotes {
   if (text.includes("timeline") || text.includes("roadmap") || text.includes("plan")) topics.push("Project timeline");
   if (topics.length === 0) topics.push("Strategic objectives");
 
+  // Heuristic for sentiment
+  const positiveWords = ["great", "success", "excellent", "approved", "agree", "perfect", "win", "good", "happy"];
+  const negativeWords = ["fail", "error", "bad", "disagree", "problem", "difficult", "hard", "stop", "slow"];
+  
+  let sentimentScore = 0;
+  positiveWords.forEach(w => { if (text.includes(w)) sentimentScore++; });
+  negativeWords.forEach(w => { if (text.includes(w)) sentimentScore--; });
+  
+  const sentiment = sentimentScore > 0 ? "positive" : sentimentScore < 0 ? "negative" : "neutral";
+  
+  // Heuristic for productivity (efficiency)
+  // Higher word count + more action items = higher score (capped at 100)
+  const baseProductivity = Math.min(60 + (topics.length * 5), 85);
+  const actionItemBonus = Math.min(topics.length * 3 + (sentimentScore > 0 ? 5 : 0), 15);
+  const productivityScore = Math.min(Math.max(baseProductivity + actionItemBonus + (Math.floor(Math.random() * 10) - 5), 40), 100);
+
   return {
     summary: `${mainSpeaker} led a discussion focusing on ${topics[0]}${topics[1] ? " and " + topics[1] : ""}. The team analyzed core dependencies across ${words} words of dialogue, ensuring all key stakeholders are aligned on the path forward.`,
     suggestedTitle: topics.length > 0 ? `${topics[0]} Alignment` : "Operational Sync",
@@ -78,5 +94,7 @@ export function generateMockNotes(transcript: string): MeetingNotes {
       { task: "Prepare progress report", owner: "Project Management", priority: "medium" },
       { task: "Schedule follow-up review", owner: mainSpeaker, priority: "low" },
     ],
+    sentiment,
+    productivityScore,
   };
 }
