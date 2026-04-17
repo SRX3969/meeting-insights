@@ -262,7 +262,26 @@ const DashboardMeetingDetail = () => {
         <div className="fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="rounded-2xl bg-accent/50 border border-border p-6 mb-6">
             <h3 className="text-sm font-semibold text-accent-foreground uppercase tracking-wider mb-2">AI Summary</h3>
-            <p className="text-sm text-foreground leading-relaxed">{notes.summary}</p>
+            <p className="text-sm text-foreground leading-relaxed mb-6">{notes.summary}</p>
+            
+            {notes.tasks.length > 0 && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border/50 pb-2">Key Accountabilities</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {notes.tasks.slice(0, 4).map((t, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white/40 border border-border/50 px-3 py-2 rounded-xl group hover:border-primary/30 transition-all">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                          {t.owner?.[0]?.toUpperCase() || "?"}
+                        </div>
+                        <span className="text-xs font-medium text-foreground line-clamp-1">{t.task}</span>
+                      </div>
+                      <span className="text-[10px] font-black text-muted-foreground shrink-0 ml-4 uppercase tracking-tighter opacity-60 group-hover:opacity-100">{t.owner || "Unassigned"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <OutputTabs notes={notes} />
