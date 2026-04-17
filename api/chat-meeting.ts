@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const config = {
   maxDuration: 60,
+  runtime: 'edge',
 };
 
 export default async function POST(req: Request) {
@@ -37,9 +38,7 @@ export default async function POST(req: Request) {
       messages,
     });
 
-    return new Response(result.textStream, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+    return result.toDataStreamResponse();
   } catch (error: any) {
     console.error("[Chat API Error]:", error);
     return new Response(JSON.stringify({ error: error.message }), {
@@ -48,4 +47,5 @@ export default async function POST(req: Request) {
     });
   }
 }
+
 
