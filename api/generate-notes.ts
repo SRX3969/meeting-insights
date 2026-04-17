@@ -46,9 +46,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     try {
-      // Using Gemini 1.5 Flash for speed and stability (avoiding Vercel 10s timeouts)
+      // Using Gemini 1.5 Pro to ensure API v1beta compatibility as Flash might be region-locked or unsupported
       const { object: notes } = await generateObject({
-        model: google("gemini-1.5-flash"), 
+        model: google("gemini-1.5-pro"), 
         schema: z.object({
           title: z.string(),
           sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
