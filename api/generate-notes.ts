@@ -5,132 +5,118 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', "true");
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     const { meetingId, transcript } = req.body;
     const authHeader = req.headers.authorization;
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    // Support both standardized Google and explicit Gemini variable names
     const GOOGLE_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    console.log(`[API] Processing meeting: ${meetingId}`);
-    console.log(`[API] Key detected: ${GOOGLE_API_KEY ? 'YES (truncated: ' + GOOGLE_API_KEY.slice(0, 5) + '...)' : 'NO'}`);
+    if (!GOOGLE_API_KEY || !supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: "Missing environment variables." });
+    }
 
-    // Strict validation with descriptive errors
-    if (!GOOGLE_API_KEY) return res.status(500).json({ error: "AI Error: GOOGLE_GENERATIVE_AI_API_KEY is missing in Vercel settings." });
-    if (!supabaseUrl) return res.status(500).json({ error: "DB Error: SUPABASE_URL is missing." });
-    if (!supabaseKey) return res.status(500).json({ error: "DB Error: SUPABASE_SERVICE_ROLE_KEY is missing." });
-
-  const supabase = createClient(supabaseUrl as string, supabaseKey as string);
+    const supabase = createClient(supabaseUrl as string, supabaseKey as string);
     const { data: { user }, error: authError } = await createClient(supabaseUrl as string, process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "", {
       global: { headers: { Authorization: authHeader || "" } },
     }).auth.getUser();
 
-    if (authError || !user) return res.status(401).json({ error: "Unauthorized: Please log in again." });
+    if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
 
-    // Create Google provider explicitly
-    const google = createGoogleGenerativeAI({
-      apiKey: GOOGLE_API_KEY,
-    });
+    const google = createGoogleGenerativeAI({ apiKey: GOOGLE_API_KEY });
 
-    // --- Dynamic Model Discovery ---
-    let validModels: string[] = [];
+    // Model Discovery for Quota Safety
+    let validModels: string[] = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-pro"];
     try {
       const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GOOGLE_API_KEY}`);
       if (modelsResponse.ok) {
         const modelsData = await modelsResponse.json();
-        const availableModels = modelsData.models || [];
-        
-        validModels = availableModels
-          .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-          .map((m: any) => m.name.replace("models/", ""));
-          
-        console.log(`[Discovery] Accessible models: ${validModels.join(", ")}`);
+        validModels = (modelsData.models || []).map((m: any) => m.name.replace("models/", ""));
       }
-    } catch (discoveryErr) {
-      console.warn("[Discovery] API fetch failed:", discoveryErr);
+    } catch (e) {}
+
+    const processQueue = [
+      ...validModels.filter(m => m.includes("1.5-flash-8b")),
+      ...validModels.filter(m => m.includes("1.5-flash") && !m.includes("8b")),
+      ...validModels.filter(m => m.includes("1.5-pro")),
+      ...validModels.filter(m => m.includes("gemini-pro"))
+    ];
+
+    let lastError = "";
+    let finalNotes = null;
+
+    for (const currentModel of processQueue) {
+      try {
+        console.log(`[AI] Attempting with ${currentModel}`);
+        const { object } = await generateObject({
+          model: google(currentModel),
+          schema: z.object({
+            title: z.string(),
+            sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
+            productivity: z.number().int().min(0).max(100),
+            summary: z.string(),
+            action_items: z.array(z.string()),
+            decisions: z.array(z.string()),
+            tasks: z.array(z.object({
+              task: z.string(),
+              assignee: z.string(),
+              priority: z.enum(["high", "medium", "low"])
+            })),
+            speakers: z.array(z.object({
+              name: z.string(),
+              tasks_assigned: z.array(z.string()),
+              sentiment: z.enum(["Positive", "Negative", "Neutral"])
+            }))
+          }),
+          prompt: `You are NoteMind AI, an elite Senior Project Manager. Transform this transcript into a JSON report.
+          
+CRITICAL: Every task in the 'tasks' list MUST be attributed to a speaker. If Ananya, Rohit, or Isha agree to a task, list it under their 'tasks_assigned' in the speakers section.
+
+Transcript: ${transcript}`,
+        });
+
+        finalNotes = object;
+        break;
+      } catch (err: any) {
+        lastError = err.message;
+        if (err.message.includes("quota") || err.message.includes("503") || err.message.includes("429")) continue;
+        console.warn(`[AI] Error with ${currentModel}: ${err.message}`);
+      }
     }
-    // -------------------------------
 
-    // --- Speed-Optimized Model Selection ---
-    // We prioritize gemini-1.5-flash-latest for speed (usually <3-5s)
-    // We only perform deep discovery if the preferred model is missing
-    let bestModel = "gemini-1.5-flash-latest";
-    if (!validModels.includes(bestModel)) {
-      const preferred = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
-      bestModel = preferred.find(p => validModels.includes(p)) || validModels[0] || "gemini-1.5-flash";
-    }
+    if (!finalNotes) return res.status(500).json({ error: `AI Failed: ${lastError}` });
 
-    try {
-      console.log(`[AI] Strategic Sync: Attempting with ${bestModel}`);
-      const { object: notes } = await generateObject({
-        model: google(bestModel), 
-        schema: z.object({
-          title: z.string().describe("Concise, impactful meeting title"),
-          sentiment: z.enum(["Positive", "Negative", "Neutral", "Mixed"]),
-          productivity: z.number().int().min(0).max(100),
-          summary: z.string().describe("A deep, multi-paragraph Markdown summary. Include sections for # Context, # Major Milestones, and # Strategic Roadmap."),
-          action_items: z.array(z.string().describe("Format: [PERSON NAME]: [ULTRA-DETAILED TASK DESCRIPTION]")),
-          decisions: z.array(z.string().describe("Core decisions made, including the rationale")),
-          tasks: z.array(z.object({
-            task: z.string(),
-            assignee: z.string(),
-            priority: z.enum(["high", "medium", "low"])
-          })),
-          speakers: z.array(z.object({
-            name: z.string(),
-            tasks_assigned: z.array(z.string()),
-            sentiment: z.enum(["Positive", "Negative", "Neutral"])
-          }))
-        }),
-        prompt: `You are an ELITE Senior Project Manager. Transform this transcript into a JSON report.
-          Transcript: ${transcript}`,
-      });
+    const { error: updateError } = await supabase
+      .from("meetings")
+      .update({
+        title: finalNotes.title,
+        summary: finalNotes.summary,
+        action_items: finalNotes.action_items,
+        decisions: finalNotes.decisions,
+        key_points: [],
+        tasks: finalNotes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
+        sentiment: finalNotes.sentiment.toLowerCase(),
+        productivity_score: finalNotes.productivity,
+        participation_insights: {
+          mostActive: finalNotes.speakers?.[0]?.name || "Unknown",
+          speakerCount: finalNotes.speakers?.length || 1,
+          engagementLevel: "high",
+          speakers: finalNotes.speakers
+        },
+        status: "completed",
+      })
+      .eq("id", meetingId);
 
-      console.log(`[AI] Generation Successful. Syncing to DB...`);
+    if (updateError) throw updateError;
+    return res.status(200).json({ success: true, notes: finalNotes });
 
-      const { error: updateError } = await supabase
-        .from("meetings")
-        .update({
-          title: notes.title,
-          summary: notes.summary,
-          action_items: notes.action_items,
-          decisions: notes.decisions,
-          key_points: [],
-          tasks: notes.tasks.map(t => ({ task: t.task, owner: t.assignee, priority: t.priority })),
-          sentiment: notes.sentiment.toLowerCase(),
-          productivity_score: notes.productivity,
-          participation_insights: {
-            mostActive: notes.speakers?.[0]?.name || "Unknown",
-            speakerCount: notes.speakers?.length || 1,
-            engagementLevel: "high",
-            speakers: notes.speakers
-          },
-          status: "completed",
-        })
-        .eq("id", meetingId);
-
-      if (updateError) throw updateError;
-
-      return res.status(200).json({ success: true, notes });
-    } catch (dbErr: any) {
-      return res.status(500).json({ error: `AI/DB Sync Failed: ${dbErr.message}` });
-    }
   } catch (error: any) {
     console.error("Critical Failure:", error);
     return res.status(500).json({ error: `System Error: ${error.message}` });
