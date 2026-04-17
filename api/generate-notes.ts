@@ -78,7 +78,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
           prompt: `You are NoteMind AI, an elite Senior Project Manager. Transform this transcript into a JSON report.
           
-CRITICAL: Every task in the 'tasks' list MUST be attributed to a speaker. If Ananya, Rohit, or Isha agree to a task, list it under their 'tasks_assigned' in the speakers section.
+1. SUMMARY: In the 'summary' field, provide a 2-3 sentence paragraph that EXPLICITLY mentions who is doing what (e.g. "Rohit is leading X, while Ananya focuses on Y").
+2. ATTRIBUTION: Every task in the 'tasks' list MUST be attributed to a speaker. If someone agrees to a task, list it under their 'tasks_assigned' in the speakers section.
 
 Transcript: ${transcript}`,
         });
